@@ -45,25 +45,126 @@ process_execute (const char *file_name)
   return tid;
 }
 
+
+// !!!!
+void esp_stack(char *file_name, void **esp){
+	char ** argv;
+	char ** arg_addr;
+	int argc = 0;
+	int data_stack_len=0;
+	int i;
+	int word_align;
+	char temp[128];
+	char *one_arg;
+	char *next_ptr;
+	for(i=0; i<(int)strlen(file_name); i++){
+		// 전체 argument 개수구하기 for malloc
+		if(file_name[i]==' '&&file_name[i]!='\0'){
+			argc +=1;
+		}
+	}
+	// 1. arg 개수 구하기
+	// 파일이름 변수 변수이면 띄어쓰기 두개, 변수 두개만 나오므로 끝에 더하
+	argc +=1;
+
+	// 2. arg 변수별로 자르기 
+	argv = (char **) malloc(sizeof(char *) * argc);
+	arg_addr = (char **) malloc(sizeof(char *) * argc);
+	// 원하는 길이만큼 copy
+	strlcpy(temp, file_name, strlen(file_name) + 1);
+	one_arg = strtok_r(temp, " ",&next_ptr);
+	for(i=0; i< argc;i++){
+		// ""단위로 자르고 next_ptr로 이
+		argv[i] = one_arg;
+		one_arg = strtok_r(NULL, " ", &next_ptr);
+	}
+	//printf("\n--%d------%s  --- %s",argc,argv[1],file_name);
+	// 여기까지 OK
+
+	//3. 자른거 주소값 집어넣기(거꾸로 집어넣어야 한다) 
+	for(i = argc-1; i>=0; i--){
+		*esp -= strlen(argv[i]) +1;
+		data_stack_len = data_stack_len + strlen(argv[i])+ 1;
+		// 복사하기
+		strlcpy(*esp, argv[i], strlen(argv[i]) + 1);
+		arg_addr[i] = *esp;
+		printf("%s %p %p----\n", argv[i],*esp,arg_addr[i]);
+	}
+
+	//4. WORD ALIGN 계산하기
+	if(data_stack_len%4!=0){
+		word_align = 4-(data_stack_len %4);
+	}else{
+		word_align = 0;
+	}
+	*esp = *esp - word_align;
+
+	//5. NULL 집어넣기
+	*esp -=4;
+	// 주소값을 통째로 집어넣는거니까
+	**(uint32_t **) esp = 0;
+
+	// 6. 그 주소값 집어넣기
+	for(i = argc-1; i>=0; i--){
+		*esp = *esp-4;
+		// 주소값을 통째로 집어넣는 거니까
+		**(uint32_t **) esp = arg_addr[i];
+	}
+
+	printf("%p --- %p", arg_addr[0], arg_addr[1]);
+	
+	// 7. argv 주소 집어넣기
+	*esp -= 4;
+	**(uint32_t **)esp = arg_addr[0];
+	printf("esp : %p",esp);
+	// 8. argc 집어넣기
+	*esp = *esp -4;
+	**(uint32_t **)esp = argc;
+
+	free(argv);
+	free(arg_addr);
+	
+	// 9. return address 넣기
+	*esp = *esp-4;
+	**(uint32_t **)esp = 0;
+	
+}
+// @@@
+
 /* A thread function that loads a user process and starts it
    running. */
 static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
+  char real_file_name[128]; // 4kb도 있는데 이걸로 해도 될듯. 
   struct intr_frame if_;
   bool success;
 
   // !!!! filname은 run 뒤에 모든 변수 다 들어온다.
-  printf("\n------%s----\n", file_name);
+  //printf("------%s----\n", file_name);
+  int idx=0;
+  // 끝도 아니고 띄어쓰기 앞까지
+  while(file_name[idx] != ' ' && file_name[idx]!= '\0')
+  {  real_file_name[idx] = file_name[idx];
+	 idx++;
+  }
+  // 끝맺음도 해줘야지
+  real_file_name[idx]='\0';	
+  // @@@@@
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
-
+  success = load (real_file_name, &if_.eip, &if_.esp);
+  // !!!!
+  if(success){
+	// setup이 완료되었다면
+	 esp_stack(file_name, &if_.esp);
+  }
+  // @@@@
   /* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
@@ -91,6 +192,8 @@ start_process (void *file_name_)
 int
 process_wait (tid_t child_tid UNUSED) 
 {
+	int i;
+	for(i=0;i<10000000000;i++);
 	return -1;
 }
 
@@ -204,6 +307,8 @@ static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
                           uint32_t read_bytes, uint32_t zero_bytes,
                           bool writable);
 
+
+
 /* Loads an ELF executable from FILE_NAME into the current thread.
    Stores the executable's entry point into *EIP
    and its initial stack pointer into *ESP.
@@ -307,7 +412,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
-
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
@@ -318,7 +422,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file_close (file);
   return success;
 }
-
+
+
 /* load() helpers. */
 
 static bool install_page (void *upage, void *kpage, bool writable);
