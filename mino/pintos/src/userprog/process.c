@@ -104,6 +104,7 @@ void esp_stack(char *file_name, void **esp){
 	// 주소값을 통째로 집어넣는거니까
 	**(uint32_t **) esp = 0;
 
+	//**(int**)esp = 0;
 	// 6. 그 주소값 집어넣기
 	for(i = argc-1; i>=0; i--){
 		*esp = *esp-4;
@@ -113,10 +114,11 @@ void esp_stack(char *file_name, void **esp){
 
 	printf("%p --- %p", arg_addr[0], arg_addr[1]);
 	
-	// 7. argv 주소 집어넣기
+	// 7. argv 주소 집어넣기(그냥 esp 앞주소임)
 	*esp -= 4;
-	**(uint32_t **)esp = arg_addr[0];
+	**(uint32_t **)esp = *esp+4;
 	printf("esp : %p",esp);
+	
 	// 8. argc 집어넣기
 	*esp = *esp -4;
 	**(uint32_t **)esp = argc;
@@ -127,7 +129,9 @@ void esp_stack(char *file_name, void **esp){
 	// 9. return address 넣기
 	*esp = *esp-4;
 	**(uint32_t **)esp = 0;
-	
+	printf("\n");
+	// offset, ㅕbuffer,size, ascii 
+	hex_dump(*esp,*esp,100,1);
 }
 // @@@
 
