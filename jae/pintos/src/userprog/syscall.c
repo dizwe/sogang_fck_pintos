@@ -19,6 +19,8 @@ void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
 
+#define WORD sizeof(uint32_t)
+
 void
 syscall_init (void) 
 {
@@ -36,10 +38,10 @@ syscall_handler (struct intr_frame *f UNUSED)
 	  halt();
 	  break;
   case SYS_EXIT:					/* Terminate this process. */
-	  exit();
+	  exit((int) *(uint32_t *) (f->esp + WORD);
 	  break;
   case SYS_EXEC:                   /* Start another process. */
-
+	  
 	  break;
   case SYS_WAIT:                   /* Wait for a child process to die. */
 	  break;
@@ -74,20 +76,35 @@ syscall_handler (struct intr_frame *f UNUSED)
 }
 
 void halt(void) {
+	printf("userprog/syscall.c/halt start\n");
 	shutdown_power_off();
+	printf("userprog/syscall.c/halt end\n");
 }
 
 void exit(int status) {
+	printf("userprog/syscall.c/exit start\n");
+	thread_exit();
+	printf("userprog/syscall.c/exit end\n");
+}
+
+pid_t exec(const char* cmd_lines) {
+	return process_execute(cmd_lines) - 1;
+}
+
+int wait(pid_t pid) {
+	printf("userprog/syscall.c/wait start\n");
+	return process_wait((tid_t)pid);
+	printf("userprog/syscall.c/wait end\n");
 
 }
-pid_t exec(const char* cmd_lines);
-int wait(pid_t pid);
 bool create(const char* file, unsigned initial_size);
 bool remove(const char* file);
 int open(const char* file);
 int filesize(int fd);
 int read(int fd, void* buffer, unsigned size);
-int write(int fd, const void* buffer, unsigned size);
+int write(int fd, const void* buffer, unsigned size) {
+
+}
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
