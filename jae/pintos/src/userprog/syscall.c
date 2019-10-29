@@ -18,7 +18,7 @@ int write(int fd, const void* buffer, unsigned size);
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
-
+void check_address(void* addr);
 #define WORD sizeof(uint32_t)
 
 void
@@ -38,12 +38,16 @@ syscall_handler (struct intr_frame *f UNUSED)
 	  halt();
 	  break;
   case SYS_EXIT:					/* Terminate this process. */
-	  exit((int) *(uint32_t *) (f->esp + WORD);
+	  check_address(f->esp + WORD);
+	  exit((int) * (uint32_t*)(f->esp + WORD);
 	  break;
   case SYS_EXEC:                   /* Start another process. */
-	  
+	  check_address(f->esp + WORD);
+	  exec((const char*) * (uint32_t*)(f->esp + WORD));
 	  break;
   case SYS_WAIT:                   /* Wait for a child process to die. */
+	  check_address(f->esp + WORD);
+	  wait((pid_t) * (uint32_t*)(f->esp + WORD));
 	  break;
   case SYS_CREATE:                 /* Create a file. */
 	  break;
@@ -64,38 +68,38 @@ syscall_handler (struct intr_frame *f UNUSED)
   case SYS_CLOSE:                  /* Close a file. */
 	  break;
 	  //####
-  case SYS_FIBBO :
+  case SYS_FIBBO:
 	  break;
   case SYS_SUM:
 	  break;
 	  //$$$$
-  default : 
+  default:
 	  printf("userprog/Syscall.c/Function System_Handler Error breaks out \n");
   }
-  thread_exit ();
+  thread_exit();
 }
 
 void halt(void) {
 	printf("userprog/syscall.c/halt start\n");
 	shutdown_power_off();
-	printf("userprog/syscall.c/halt end\n");
 }
 
 void exit(int status) {
 	printf("userprog/syscall.c/exit start\n");
+	struct thread* cur = thread_current();
+	printf("%s : exit(%d)", cur->name ,status);
 	thread_exit();
-	printf("userprog/syscall.c/exit end\n");
+
 }
 
 pid_t exec(const char* cmd_lines) {
-	return process_execute(cmd_lines) - 1;
+	printf("userprog/syscall.c/exec start\n");
+	return (pid_t)(process_execute(cmd_lines) - 1);
 }
 
 int wait(pid_t pid) {
 	printf("userprog/syscall.c/wait start\n");
 	return process_wait((tid_t)pid);
-	printf("userprog/syscall.c/wait end\n");
-
 }
 bool create(const char* file, unsigned initial_size);
 bool remove(const char* file);
@@ -108,4 +112,11 @@ int write(int fd, const void* buffer, unsigned size) {
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
+void check_address(void* addr) 
+{
+	if (!is_user_vaddr(vaddr)) 
+	{
+		exit(-1);
+	}
+}
 //$$$$
