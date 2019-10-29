@@ -104,6 +104,7 @@ void esp_stack(char *file_name, void **esp){
 	// 주소값을 통째로 집어넣는거니까
 	**(uint32_t **) esp = 0;
 
+	//**(int**)esp = 0;
 	// 6. 그 주소값 집어넣기
 	for(i = argc-1; i>=0; i--){
 		*esp = *esp-4;
@@ -113,10 +114,11 @@ void esp_stack(char *file_name, void **esp){
 
 	printf("%p --- %p", arg_addr[0], arg_addr[1]);
 	
-	// 7. argv 주소 집어넣기
+	// 7. argv 주소 집어넣기(그냥 esp 앞주소임)
 	*esp -= 4;
-	**(uint32_t **)esp = arg_addr[0];
+	**(uint32_t **)esp = *esp+4;
 	printf("esp : %p",esp);
+	
 	// 8. argc 집어넣기
 	*esp = *esp -4;
 	**(uint32_t **)esp = argc;
@@ -127,7 +129,10 @@ void esp_stack(char *file_name, void **esp){
 	// 9. return address 넣기
 	*esp = *esp-4;
 	**(uint32_t **)esp = 0;
-	
+	//(uint32_t)**esp = 0;
+	printf("\n");
+	// offset, ㅕbuffer,size, ascii 
+	hex_dump(*esp,*esp,100,1);
 }
 // @@@
 
@@ -137,10 +142,10 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
-  char real_file_name[128]; // 4kb도 있는데 이걸로 해도 될듯. 
+  //char real_file_name[128]; // 4kb도 있는데 이걸로 해도 될듯. 
   struct intr_frame if_;
   bool success;
-
+/*
   // !!!! filname은 run 뒤에 모든 변수 다 들어온다.
   //printf("------%s----\n", file_name);
   int idx=0;
@@ -152,20 +157,24 @@ start_process (void *file_name_)
   // 끝맺음도 해줘야지
   real_file_name[idx]='\0';	
   // @@@@@
-
+*/
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (real_file_name, &if_.eip, &if_.esp);
+  //!!!!
+  success = load (file_name, &if_.eip, &if_.esp);
+  // @@@@
+  /*
   // !!!!
   if(success){
 	// setup이 완료되었다면
 	 esp_stack(file_name, &if_.esp);
   }
   // @@@@
-  /* If load failed, quit. */
+ */
+  //* If load failed, quit. */
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
@@ -329,8 +338,22 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  // !!!! filname은 run 뒤에 모든 변수 다 들어온다.
+  char real_file_name[128]; // 4kb도 있는데 이걸로 해도될듯.
+  //printf("------%s----\n", file_name);
+  int idx=0;
+  // 끝도 아니고 띄어쓰기 앞까지
+  while(file_name[idx] != ' ' && file_name[idx]!= '\0')
+  {  real_file_name[idx] = file_name[idx];
+	 idx++;
+  }
+  // 끝맺음도 해줘야지
+  real_file_name[idx]='\0';	
+  // @@@@@
   /* Open executable file. */
-  file = filesys_open (file_name);
+  // !!!! real_file_name으로 수정
+  file = filesys_open (real_file_name);
+  // @@@@
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -412,6 +435,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
+  
+  esp_stack(file_name, esp);
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
