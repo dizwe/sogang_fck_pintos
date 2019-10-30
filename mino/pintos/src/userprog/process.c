@@ -165,6 +165,7 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
   //!!!!
   success = load (file_name, &if_.eip, &if_.esp);
+  //printf("%d --------\n",success);
   // @@@@
   /*
   // !!!!
@@ -178,7 +179,7 @@ start_process (void *file_name_)
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
-
+  
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -202,7 +203,9 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
 	int i;
-	for(i=0;i<10000000000;i++);
+	printf("wait test start\n");
+	for(i=0;i<5000000000;i++);
+	printf("wait test end\n");
 	return -1;
 }
 

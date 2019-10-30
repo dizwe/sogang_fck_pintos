@@ -39,8 +39,9 @@ syscall_handler (struct intr_frame *f UNUSED)
   
 
   uint32_t *args = f->esp;
-  printf ("system call!\n");
-  printf ("num : %d\n",*(uint32_t*)(f->esp));
+  printf("--- arg num : %d",args[0]);
+//  printf ("system call!\n");
+//  printf ("num : %d\n",*(uint32_t*)(f->esp));
   switch (*(uint32_t*)(f->esp)) {
   case SYS_HALT:                   /* Halt the operating system. */
 	  halt();
@@ -48,6 +49,7 @@ syscall_handler (struct intr_frame *f UNUSED)
   case SYS_EXIT:					/* Terminate this process. */
 	  check_address(f->esp + WORD);
 	  //exit((int) * (uint32_t*)(f->esp + WORD));
+	  //printf("exit num : %d",(int)args[1]);
 	  exit((int)args[1]);
 	  break;
   case SYS_EXEC:                   /* Start another process. */
@@ -70,7 +72,7 @@ syscall_handler (struct intr_frame *f UNUSED)
 	  break;
   case SYS_WRITE:                  /* Write to a file. */
 	  //check_address(f->esp); 
-	  printf("%d %d --data \n",args[1],args[3]);
+//	  printf("%d %d --data \n",args[1],args[3]);
 	  write((int) args[1], (void*)args[2],(unsigned)args[3]);
 	  // write((int) * (uint32_t*)(f->esp + WORD), (void*)*(uint32_t *)(f->esp+2*WORD),(unsigned)*(uint32_t*)(f->esp+3*WORD));
 	  break;
@@ -89,7 +91,6 @@ syscall_handler (struct intr_frame *f UNUSED)
   default:
 	  printf("userprog/Syscall.c/Function System_Handler Error breaks out \n");
   }
-  thread_exit();
 }
 
 void halt(void) {
@@ -101,8 +102,9 @@ void exit(int status) {
 	printf("userprog/syscall.c/exit start\n");
 	struct thread* cur = thread_current();
 	printf("%s : exit(%d)", cur->name ,status);
+	printf("kk");	
+	cur->status = status;
 	thread_exit();
-
 }
 
 pid_t exec(const char* cmd_lines) {
@@ -112,7 +114,7 @@ pid_t exec(const char* cmd_lines) {
 
 int wait(pid_t pid) {
 	printf("userprog/syscall.c/wait start\n");
-	return process_wait((tid_t)pid);
+	return process_wait((pid_t)pid);
 }
 bool create(const char* file, unsigned initial_size);
 bool remove(const char* file);
@@ -120,14 +122,15 @@ int open(const char* file);
 int filesize(int fd);
 int read(int fd, void* buffer, unsigned size);
 int write(int fd, const void* buffer, unsigned size) {
-  printf("write!!haha\n");
+ // printf("write!!haha\n");
   // fd는 파일 디스크립터 -> 파일이 오픈되고 나면 파일 디스크립터라는 ㅇ니덱스 번호가 반환된다.
   if (fd != STDOUT) {	
     return -1; 
   }
 
-  putbuf(buffer, size);
-  printf("\n ntest");
+ // size
+  putbuf(buffer,size);
+//  printf("\n ntest");
   return size;
 }
 void seek(int fd, unsigned position);
