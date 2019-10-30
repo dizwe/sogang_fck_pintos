@@ -190,10 +190,25 @@ start_process (void *file_name_)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid ) 
 {
-	int i;
-	for(i=0;i<10000000000;i++);
+	int exit_status;
+	struct thread* cur = thread_current();
+	struct thread* cur_thread = NULL;
+	struct list_elem* temp = NULL;
+
+	for (temp = list_begin(&cur->child_thread); temp != list_end(&cur->child_thread); 
+		temp = list_next(temp)) {
+		cur_thread = list_entry(temp, struct thread, child_thread_elem);
+		if (child_tid == cur_thread->tid) {
+			sema_down(&cur_thread->memory_preserve);
+
+			exit_status = cur_thread->child_exit_status;
+
+			sema_up(&cur_thread->child_thread_lock);
+			return exit_status;
+		}
+	}
 	return -1;
 }
 
