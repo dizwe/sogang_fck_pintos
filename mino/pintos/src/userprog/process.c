@@ -88,7 +88,7 @@ void esp_stack(char *file_name, void **esp){
 		// 복사하기
 		strlcpy(*esp, argv[i], strlen(argv[i]) + 1);
 		arg_addr[i] = *esp;
-		printf("%s %p %p----\n", argv[i],*esp,arg_addr[i]);
+//		printf("%s %p %p----\n", argv[i],*esp,arg_addr[i]);
 	}
 
 	//4. WORD ALIGN 계산하기
@@ -111,12 +111,12 @@ void esp_stack(char *file_name, void **esp){
 		**(uint32_t **) esp = arg_addr[i];
 	}
 
-	printf("%p --- %p", arg_addr[0], arg_addr[1]);
+//	printf("%p --- %p", arg_addr[0], arg_addr[1]);
 	
 	// 7. argv 주소 집어넣기
 	*esp -= 4;
-	**(uint32_t **)esp = arg_addr[0];
-	printf("esp : %p",esp);
+	**(uint32_t **)esp = *esp + 4;
+//	printf("esp : %p",esp);
 	// 8. argc 집어넣기
 	*esp = *esp -4;
 	**(uint32_t **)esp = argc;
@@ -127,7 +127,8 @@ void esp_stack(char *file_name, void **esp){
 	// 9. return address 넣기
 	*esp = *esp-4;
 	**(uint32_t **)esp = 0;
-	
+	//offset, buffer, size, ascii
+//	hex_dump(*esp,*esp,100,1);
 }
 // @@@
 
@@ -196,16 +197,18 @@ process_wait (tid_t child_tid )
 	struct thread* cur = thread_current();
 	struct thread* cur_thread = NULL;
 	struct list_elem* temp = NULL;
-
+//	printf("enter,,,\n");
 	for (temp = list_begin(&cur->child_thread); temp != list_end(&cur->child_thread); 
 		temp = list_next(temp)) {
 		cur_thread = list_entry(temp, struct thread, child_thread_elem);
+//		printf("test\n");
 		if (child_tid == cur_thread->tid) {
-			sema_down(&cur_thread->memory_preserve);
+//			printf("waiting...i\n");
+			sema_down(&(cur_thread->memory_preserve));
 
 			exit_status = cur_thread->child_exit_status;
-
-			sema_up(&cur_thread->child_thread_lock);
+//			printf("waiting.... done");
+			sema_up(&(cur_thread->child_thread_lock));
 			return exit_status;
 		}
 	}
@@ -235,6 +238,8 @@ process_exit (void)
       pagedir_activate (NULL);
       pagedir_destroy (pd);
     }
+  sema_up(&(cur->memory_preserve)); 
+  sema_down(&(cur->child_thread_lock)); 
 }
 
 /* Sets up the CPU for running user code in the current

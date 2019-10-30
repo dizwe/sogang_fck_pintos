@@ -3,7 +3,8 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-
+#include "threads/vaddr.h"
+#include "lib/user/syscall.h"
 static void syscall_handler(struct intr_frame*);
 void halt(void);
 void exit(int status);
@@ -39,7 +40,7 @@ syscall_handler(struct intr_frame* f UNUSED)
 
 
 	uint32_t* args = f->esp;
-	printf("--- arg num : %d", args[0]);
+//	printf("--- arg num : %d", args[0]);
 	//  printf ("system call!\n");
 	//  printf ("num : %d\n",*(uint32_t*)(f->esp));
 	switch (*(uint32_t*)(f->esp)) {
@@ -102,7 +103,7 @@ void exit(int status) {
 	printf("userprog/syscall.c/exit start\n");
 	struct thread* cur = thread_current();
 	printf("%s : exit(%d)", cur->name, status);
-	printf("kk");
+//	printf("kk");
 	cur->status = status;
 	thread_exit();
 
@@ -143,7 +144,7 @@ unsigned tell(int fd);
 void close(int fd);
 void check_address(void* addr) 
 {
-	if (!is_user_vaddr(vaddr)) 
+	if (!is_user_vaddr(addr)) 
 	{
 		exit(-1);
 	}
