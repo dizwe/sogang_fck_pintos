@@ -54,11 +54,11 @@ syscall_handler(struct intr_frame* f UNUSED)
 		break;
 	case SYS_EXEC:                   /* Start another process. */
 		check_address(f->esp + WORD);
-		exec((const char*) * (uint32_t*)(f->esp + WORD));
+		f->eax = exec((const char*) * (uint32_t*)(f->esp + WORD));
 		break;
 	case SYS_WAIT:                   /* Wait for a child process to die. */
 		check_address(f->esp + WORD);
-		wait((pid_t) * (uint32_t*)(f->esp + WORD));
+		f->eax = wait((pid_t) * (uint32_t*)(f->esp + WORD));
 		break;
 	case SYS_CREATE:                 /* Create a file. */
 		break;

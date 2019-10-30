@@ -3,13 +3,11 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-#include "threads/vaddr.h"
-#include "lib/user/syscall.h"
 
-static void syscall_handler (struct intr_frame *);
+static void syscall_handler(struct intr_frame*);
 void halt(void);
 void exit(int status);
-// lib/user/syscall.hì—pid_t ì €ì¥ë˜ì–´ìˆìŒ
+// lib/user/syscall.h¿¡pid_t ÀúÀåµÇ¾îÀÖÀ½
 pid_t exec(const char* cmd_lines);
 int wait(pid_t pid);
 bool create(const char* file, unsigned initial_size);
@@ -26,6 +24,7 @@ void check_address(void* addr);
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
+
 void
 syscall_init (void) 
 {
@@ -33,64 +32,65 @@ syscall_init (void)
 }
 
 //####
+//####
 static void
-syscall_handler (struct intr_frame *f UNUSED) 
+syscall_handler(struct intr_frame* f UNUSED)
 {
-  
 
-  uint32_t *args = f->esp;
-  printf("--- arg num : %d",args[0]);
-//  printf ("system call!\n");
-//  printf ("num : %d\n",*(uint32_t*)(f->esp));
-  switch (*(uint32_t*)(f->esp)) {
-  case SYS_HALT:                   /* Halt the operating system. */
-	  halt();
-	  break;
-  case SYS_EXIT:					/* Terminate this process. */
-	  check_address(f->esp + WORD);
-	  //exit((int) * (uint32_t*)(f->esp + WORD));
-	  //printf("exit num : %d",(int)args[1]);
-	  exit((int)args[1]);
-	  break;
-  case SYS_EXEC:                   /* Start another process. */
-	  check_address(f->esp + WORD);
-	  exec((const char*) * (uint32_t*)(f->esp + WORD));
-	  break;
-  case SYS_WAIT:                   /* Wait for a child process to die. */
-	  check_address(f->esp + WORD);
-	  wait((pid_t) * (uint32_t*)(f->esp + WORD));
-	  break;
-  case SYS_CREATE:                 /* Create a file. */
-	  break;
-  case SYS_REMOVE:                 /* Delete a file. */
-	  break;
-  case SYS_OPEN:                   /* Open a file. */
-	  break;
-  case SYS_FILESIZE:               /* Obtain a file's size. */
-	  break;
-  case SYS_READ:                   /* Read from a file. */
-	  break;
-  case SYS_WRITE:                  /* Write to a file. */
-	  //check_address(f->esp); 
-//	  printf("%d %d --data \n",args[1],args[3]);
-	  write((int) args[1], (void*)args[2],(unsigned)args[3]);
-	  // write((int) * (uint32_t*)(f->esp + WORD), (void*)*(uint32_t *)(f->esp+2*WORD),(unsigned)*(uint32_t*)(f->esp+3*WORD));
-	  break;
-  case SYS_SEEK:                   /* Change position in a file. */
-	  break;
-  case SYS_TELL:                   /* Report current position in a file. */
-	  break;
-  case SYS_CLOSE:                  /* Close a file. */
-	  break;
-	  //####
-  //case SYS_FIBBO:
-	//  break;
-  //case SYS_SUM:
-	//  break;
-	  //$$$$
-  default:
-	  printf("userprog/Syscall.c/Function System_Handler Error breaks out \n");
-  }
+
+	uint32_t* args = f->esp;
+	printf("--- arg num : %d", args[0]);
+	//  printf ("system call!\n");
+	//  printf ("num : %d\n",*(uint32_t*)(f->esp));
+	switch (*(uint32_t*)(f->esp)) {
+	case SYS_HALT:                   /* Halt the operating system. */
+		halt();
+		break;
+	case SYS_EXIT:					/* Terminate this process. */
+		check_address(f->esp + WORD);
+		//exit((int) * (uint32_t*)(f->esp + WORD));
+		//printf("exit num : %d",(int)args[1]);
+		exit((int)args[1]);
+		break;
+	case SYS_EXEC:                   /* Start another process. */
+		check_address(f->esp + WORD);
+		exec((const char*) * (uint32_t*)(f->esp + WORD));
+		break;
+	case SYS_WAIT:                   /* Wait for a child process to die. */
+		check_address(f->esp + WORD);
+		wait((pid_t) * (uint32_t*)(f->esp + WORD));
+		break;
+	case SYS_CREATE:                 /* Create a file. */
+		break;
+	case SYS_REMOVE:                 /* Delete a file. */
+		break;
+	case SYS_OPEN:                   /* Open a file. */
+		break;
+	case SYS_FILESIZE:               /* Obtain a file's size. */
+		break;
+	case SYS_READ:                   /* Read from a file. */
+		break;
+	case SYS_WRITE:                  /* Write to a file. */
+		//check_address(f->esp); 
+  //	  printf("%d %d --data \n",args[1],args[3]);
+		write((int)args[1], (void*)args[2], (unsigned)args[3]);
+		// write((int) * (uint32_t*)(f->esp + WORD), (void*)*(uint32_t *)(f->esp+2*WORD),(unsigned)*(uint32_t*)(f->esp+3*WORD));
+		break;
+	case SYS_SEEK:                   /* Change position in a file. */
+		break;
+	case SYS_TELL:                   /* Report current position in a file. */
+		break;
+	case SYS_CLOSE:                  /* Close a file. */
+		break;
+		//####
+	//case SYS_FIBBO:
+	  //  break;
+	//case SYS_SUM:
+	  //  break;
+		//$$$$
+	default:
+		printf("userprog/Syscall.c/Function System_Handler Error breaks out \n");
+	}
 }
 
 void halt(void) {
@@ -101,44 +101,49 @@ void halt(void) {
 void exit(int status) {
 	printf("userprog/syscall.c/exit start\n");
 	struct thread* cur = thread_current();
-	printf("%s : exit(%d)", cur->name ,status);
-	printf("kk");	
+	printf("%s : exit(%d)", cur->name, status);
+	printf("kk");
 	cur->status = status;
 	thread_exit();
+
 }
 
 pid_t exec(const char* cmd_lines) {
 	printf("userprog/syscall.c/exec start\n");
-	return (pid_t)(process_execute(cmd_lines) - 1);
+
+	tid_t result = process_execute(cmd_lines);
+	return (pid_t)(result - 1);
 }
 
 int wait(pid_t pid) {
 	printf("userprog/syscall.c/wait start\n");
-	return process_wait((pid_t)pid);
+	return process_wait((tid_t)pid);
 }
+
 bool create(const char* file, unsigned initial_size);
 bool remove(const char* file);
 int open(const char* file);
 int filesize(int fd);
-int read(int fd, void* buffer, unsigned size);
-int write(int fd, const void* buffer, unsigned size) {
- // printf("write!!haha\n");
-  // fdëŠ” íŒŒì¼ ë””ìŠ¤í¬ë¦½í„° -> íŒŒì¼ì´ ì˜¤í”ˆë˜ê³  ë‚˜ë©´ íŒŒì¼ ë””ìŠ¤í¬ë¦½í„°ë¼ëŠ” ã…‡ë‹ˆë±ìŠ¤ ë²ˆí˜¸ê°€ ë°˜í™˜ëœë‹¤.
-  if (fd != STDOUT) {	
-    return -1; 
-  }
+int read(int fd, void* buffer, unsigned size); 
 
- // size
-  putbuf(buffer,size);
-//  printf("\n ntest");
-  return size;
+int write(int fd, const void* buffer, unsigned size) {
+	// printf("write!!haha\n");
+	 // fd´Â ÆÄÀÏ µğ½ºÅ©¸³ÅÍ -> ÆÄÀÏÀÌ ¿ÀÇÂµÇ°í ³ª¸é ÆÄÀÏ µğ½ºÅ©¸³ÅÍ¶ó´Â ¤·´Ïµ¦½º ¹øÈ£°¡ ¹İÈ¯µÈ´Ù.
+	if (fd != STDOUT) {
+		return -1;
+	}
+
+	// size
+	putbuf(buffer, size);
+	//  printf("\n ntest");
+	return size;
 }
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
 void check_address(void* addr) 
 {
-	if (!is_user_vaddr(addr)) 
+	if (!is_user_vaddr(vaddr)) 
 	{
 		exit(-1);
 	}
