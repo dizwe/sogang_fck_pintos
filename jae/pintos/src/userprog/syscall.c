@@ -3,7 +3,8 @@
 #include <syscall-nr.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
-
+#include "threads/vaddr.h"
+#include "lib/user/syscall.h"
 static void syscall_handler(struct intr_frame*);
 void halt(void);
 void exit(int status);
@@ -20,6 +21,7 @@ void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
 void check_address(void* addr);
+
 #define WORD sizeof(uint32_t)
 #define STDIN 0
 #define STDOUT 1
@@ -32,14 +34,11 @@ syscall_init (void)
 }
 
 //####
-//####
 static void
 syscall_handler(struct intr_frame* f UNUSED)
 {
-
-
 	uint32_t* args = f->esp;
-	printf("--- arg num : %d", args[0]);
+//	printf("--- arg num : %d", args[0]);
 	//  printf ("system call!\n");
 	//  printf ("num : %d\n",*(uint32_t*)(f->esp));
 	switch (*(uint32_t*)(f->esp)) {
@@ -54,11 +53,11 @@ syscall_handler(struct intr_frame* f UNUSED)
 		break;
 	case SYS_EXEC:                   /* Start another process. */
 		check_address(f->esp + WORD);
-		f->eax = exec((const char*) * (uint32_t*)(f->esp + WORD));
+		exec((const char*) * (uint32_t*)(f->esp + WORD));
 		break;
 	case SYS_WAIT:                   /* Wait for a child process to die. */
 		check_address(f->esp + WORD);
-		f->eax = wait((pid_t) * (uint32_t*)(f->esp + WORD));
+		wait((pid_t) * (uint32_t*)(f->esp + WORD));
 		break;
 	case SYS_CREATE:                 /* Create a file. */
 		break;
@@ -69,9 +68,11 @@ syscall_handler(struct intr_frame* f UNUSED)
 	case SYS_FILESIZE:               /* Obtain a file's size. */
 		break;
 	case SYS_READ:                   /* Read from a file. */
+		check_address(f->esp+WORD); 
+		read((int)args[1], (void *)args[2], (unsigned)args[3]);
 		break;
 	case SYS_WRITE:                  /* Write to a file. */
-		//check_address(f->esp); 
+		check_address(f->esp+WORD); 
   //	  printf("%d %d --data \n",args[1],args[3]);
 		write((int)args[1], (void*)args[2], (unsigned)args[3]);
 		// write((int) * (uint32_t*)(f->esp + WORD), (void*)*(uint32_t *)(f->esp+2*WORD),(unsigned)*(uint32_t*)(f->esp+3*WORD));
@@ -83,10 +84,12 @@ syscall_handler(struct intr_frame* f UNUSED)
 	case SYS_CLOSE:                  /* Close a file. */
 		break;
 		//####
-	//case SYS_FIBBO:
-	  //  break;
-	//case SYS_SUM:
-	  //  break;
+	case SYS_FIBBO:
+		fibonacci((int)args[1]);
+		break;
+	case SYS_SUM:
+		sum_of_four_int((int)args[1], (int)args[2], (int)args[3], (int)args[4]);
+		break;
 		//$$$$
 	default:
 		printf("userprog/Syscall.c/Function System_Handler Error breaks out \n");
@@ -94,29 +97,41 @@ syscall_handler(struct intr_frame* f UNUSED)
 }
 
 void halt(void) {
-	printf("userprog/syscall.c/halt start\n");
+	//printf("userprog/syscall.c/halt start\n");
 	shutdown_power_off();
 }
 
 void exit(int status) {
-	printf("userprog/syscall.c/exit start\n");
+	//printf("userprog/syscall.c/exit start\n");
 	struct thread* cur = thread_current();
-	printf("%s : exit(%d)", cur->name, status);
-	printf("kk");
+
+    char real_file_name[128]; // 4kb?¿¿?¿¿?¿¿ ¿¿. 
+
+    int idx=0;
+    // ¿¿ ¿¿?¿¿¿¿ ¿¿?
+    while((cur->name)[idx] != ' ' && (cur->name)[idx]!= '\0')
+    {  real_file_name[idx] = (cur->name)[idx];
+	   idx++;
+    }
+    // ¿¿¿¿ ¿¿¿¿
+    real_file_name[idx]='\0';	
+	
+	printf("%s: exit(%d)\n", real_file_name, status);
+//	printf("kk");
 	cur->status = status;
 	thread_exit();
 
 }
 
 pid_t exec(const char* cmd_lines) {
-	printf("userprog/syscall.c/exec start\n");
+	//printf("userprog/syscall.c/exec start\n");
 
 	tid_t result = process_execute(cmd_lines);
 	return (pid_t)(result - 1);
 }
 
 int wait(pid_t pid) {
-	printf("userprog/syscall.c/wait start\n");
+	//printf("userprog/syscall.c/wait start\n");
 	return process_wait((tid_t)pid);
 }
 
@@ -124,8 +139,19 @@ bool create(const char* file, unsigned initial_size);
 bool remove(const char* file);
 int open(const char* file);
 int filesize(int fd);
-int read(int fd, void* buffer, unsigned size); 
+int read(int fd, void* buffer, unsigned size){
+	int i;
+	if(fd != STDIN){
+		return -1;
+	}
+	for(i=0;i<size;i++){
+		if(input_getc()=='\0'){
+			break;
+		}
+	}
 
+	return i;
+}
 int write(int fd, const void* buffer, unsigned size) {
 	// printf("write!!haha\n");
 	 // fd´Â ÆÄÀÏ µð½ºÅ©¸³ÅÍ -> ÆÄÀÏÀÌ ¿ÀÇÂµÇ°í ³ª¸é ÆÄÀÏ µð½ºÅ©¸³ÅÍ¶ó´Â ¤·´Ïµ¦½º ¹øÈ£°¡ ¹ÝÈ¯µÈ´Ù.
@@ -143,9 +169,29 @@ unsigned tell(int fd);
 void close(int fd);
 void check_address(void* addr) 
 {
-	if (!is_user_vaddr(vaddr)) 
+	if (!is_user_vaddr(addr)) 
 	{
 		exit(-1);
 	}
 }
 //$$$$
+
+
+int fibonacci(int n) {
+	int a, b, ff, i;
+	if (n == 0) return 0;
+	if (n == 1) return 1;
+
+	for (i = 2; i <= n; i++) {
+		ff = a + b;
+		a = b;
+		b = ff;
+	}
+	return ff;
+}
+
+int sum_of_four_int(int a, int b, int c, int d) {
+	return a + b + c + d;
+}
+//$$$$
+
