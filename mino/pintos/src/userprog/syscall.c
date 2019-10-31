@@ -70,9 +70,11 @@ syscall_handler(struct intr_frame* f UNUSED)
 	case SYS_FILESIZE:               /* Obtain a file's size. */
 		break;
 	case SYS_READ:                   /* Read from a file. */
+		check_address(f->esp+WORD); 
+		read((int)args[1], (void *)args[2], (unsigned)args[3]);
 		break;
 	case SYS_WRITE:                  /* Write to a file. */
-		//check_address(f->esp); 
+		check_address(f->esp+WORD); 
   //	  printf("%d %d --data \n",args[1],args[3]);
 		write((int)args[1], (void*)args[2], (unsigned)args[3]);
 		// write((int) * (uint32_t*)(f->esp + WORD), (void*)*(uint32_t *)(f->esp+2*WORD),(unsigned)*(uint32_t*)(f->esp+3*WORD));
@@ -100,7 +102,7 @@ void halt(void) {
 }
 
 void exit(int status) {
-	printf("userprog/syscall.c/exit start\n");
+	//printf("userprog/syscall.c/exit start\n");
 	struct thread* cur = thread_current();
 	printf("%s : exit(%d)", cur->name, status);
 //	printf("kk");
@@ -125,8 +127,19 @@ bool create(const char* file, unsigned initial_size);
 bool remove(const char* file);
 int open(const char* file);
 int filesize(int fd);
-int read(int fd, void* buffer, unsigned size); 
+int read(int fd, void* buffer, unsigned size){
+	int i;
+	if(fd != STDIN){
+		return -1;
+	}
+	for(i=0;i<size;i++){
+		if(input_getc()=='\0'){
+			break;
+		}
+	}
 
+	return i;
+}
 int write(int fd, const void* buffer, unsigned size) {
 	// printf("write!!haha\n");
 	 // fd는 파일 디스크립터 -> 파일이 오픈되고 나면 파일 디스크립터라는 ㅇ니덱스 번호가 반환된다.
