@@ -97,14 +97,26 @@ syscall_handler(struct intr_frame* f UNUSED)
 }
 
 void halt(void) {
-	printf("userprog/syscall.c/halt start\n");
+	//printf("userprog/syscall.c/halt start\n");
 	shutdown_power_off();
 }
 
 void exit(int status) {
 	//printf("userprog/syscall.c/exit start\n");
 	struct thread* cur = thread_current();
-	printf("%s : exit(%d)", cur->name, status);
+
+    char real_file_name[128]; // 4kb¿ ¿¿¿ ¿¿¿ ¿¿ ¿¿. 
+
+    int idx=0;
+    // ¿¿ ¿¿¿ ¿¿¿¿ ¿¿¿
+    while((cur->name)[idx] != ' ' && (cur->name)[idx]!= '\0')
+    {  real_file_name[idx] = (cur->name)[idx];
+	   idx++;
+    }
+    // ¿¿¿¿ ¿¿¿¿
+    real_file_name[idx]='\0';	
+	
+	printf("%s: exit(%d)\n", real_file_name, status);
 //	printf("kk");
 	cur->status = status;
 	thread_exit();
@@ -112,14 +124,14 @@ void exit(int status) {
 }
 
 pid_t exec(const char* cmd_lines) {
-	printf("userprog/syscall.c/exec start\n");
+	//printf("userprog/syscall.c/exec start\n");
 
 	tid_t result = process_execute(cmd_lines);
 	return (pid_t)(result - 1);
 }
 
 int wait(pid_t pid) {
-	printf("userprog/syscall.c/wait start\n");
+	//printf("userprog/syscall.c/wait start\n");
 	return process_wait((tid_t)pid);
 }
 
