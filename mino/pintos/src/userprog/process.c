@@ -57,10 +57,15 @@ void esp_stack(char *file_name, void **esp){
 	char temp[128];
 	char *one_arg;
 	char *next_ptr;
+	int blanking = 0;
+
 	for(i=0; i<(int)strlen(file_name); i++){
 		// 전체 argument 개수구하기 for malloc
-		if(file_name[i]==' '&&file_name[i]!='\0'){
+		if(file_name[i]==' '&&file_name[i]!='\0'&&blanking==0){
 			argc +=1;
+			blanking = 1;
+		}else{
+			blanking = 0;
 		}
 	}
 	// 1. arg 개수 구하기
