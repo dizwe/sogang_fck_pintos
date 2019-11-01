@@ -47,17 +47,17 @@ syscall_handler(struct intr_frame* f UNUSED)
 		break;
 	case SYS_EXIT:					/* Terminate this process. */
 		check_address(f->esp + WORD);
-		//exit((int) * (uint32_t*)(f->esp + WORD));
 		//printf("exit num : %d",(int)args[1]);
-		exit((int)args[1]);
+		exit((int) * (uint32_t*)(f->esp + WORD));
+		//exit((int)args[1]);
 		break;
 	case SYS_EXEC:                   /* Start another process. */
 		check_address(f->esp + WORD);
-		exec((const char*) * (uint32_t*)(f->esp + WORD));
+		f->eax = exec((const char*) * (uint32_t*)(f->esp + WORD));
 		break;
 	case SYS_WAIT:                   /* Wait for a child process to die. */
 		check_address(f->esp + WORD);
-		wait((pid_t) * (uint32_t*)(f->esp + WORD));
+		f->eax = wait((pid_t) * (uint32_t*)(f->esp + WORD));
 		break;
 	case SYS_CREATE:                 /* Create a file. */
 		break;
@@ -69,12 +69,12 @@ syscall_handler(struct intr_frame* f UNUSED)
 		break;
 	case SYS_READ:                   /* Read from a file. */
 		check_address(f->esp+WORD); 
-		read((int)args[1], (void *)args[2], (unsigned)args[3]);
+		f->eax = read((int)args[1], (void *)args[2], (unsigned)args[3]);
 		break;
 	case SYS_WRITE:                  /* Write to a file. */
 		check_address(f->esp+WORD); 
   //	  printf("%d %d --data \n",args[1],args[3]);
-		write((int)args[1], (void*)args[2], (unsigned)args[3]);
+		f->eax = write((int)args[1], (void*)args[2], (unsigned)args[3]);
 		// write((int) * (uint32_t*)(f->esp + WORD), (void*)*(uint32_t *)(f->esp+2*WORD),(unsigned)*(uint32_t*)(f->esp+3*WORD));
 		break;
 	case SYS_SEEK:                   /* Change position in a file. */
@@ -104,11 +104,10 @@ void halt(void) {
 void exit(int status) {
 	//printf("userprog/syscall.c/exit start\n");
 	struct thread* cur = thread_current();
-
     char real_file_name[128]; // 4kb?真?真?真 真. 
 
     int idx=0;
-    // 真 真?真真 真?
+    // 真 真?真真 真? 
     while((cur->name)[idx] != ' ' && (cur->name)[idx]!= '\0')
     {  real_file_name[idx] = (cur->name)[idx];
 	   idx++;
@@ -117,8 +116,9 @@ void exit(int status) {
     real_file_name[idx]='\0';	
 	
 	printf("%s: exit(%d)\n", real_file_name, status);
-//	printf("kk");
-	cur->status = status;
+	//printf("-----%d status ",status);
+	// change ""child"" status
+	cur->child_exit_status = status;
 	thread_exit();
 
 }

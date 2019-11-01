@@ -93,7 +93,6 @@ void esp_stack(char *file_name, void **esp){
 		// 복사하기
 		strlcpy(*esp, argv[i], strlen(argv[i]) + 1);
 		arg_addr[i] = *esp;
-//		printf("%s %p %p----\n", argv[i],*esp,arg_addr[i]);
 	}
 
 	//4. WORD ALIGN 계산하기
@@ -208,7 +207,6 @@ process_wait (tid_t child_tid )
 		cur_thread = list_entry(temp, struct thread, child_thread_elem);
 //		printf("test\n");
 		if (child_tid == cur_thread->tid) {
-//			printf("waiting...i\n");
 			sema_down(&(cur_thread->memory_preserve));
 
 			exit_status = cur_thread->child_exit_status;
