@@ -124,9 +124,20 @@ void exit(int status) {
 }
 
 pid_t exec(const char* cmd_lines) {
+	struct file *file = NULL;
 	//printf("userprog/syscall.c/exec start\n");
-
+//	printf("\n---start : %s",cmd_lines);
+	// exec-missing checkes whether cmd_lines really exists
+	file = filesys_open(cmd_lines);
+	if(file ==NULL)
+	{
+		// because it can be child process I should return exit status , not exit directly
+		return -1;
+	}
 	tid_t result = process_execute(cmd_lines);
+
+	// child does not print out anything if do not wait
+	process_wait(result);
 	return (pid_t)(result - 1);
 }
 
