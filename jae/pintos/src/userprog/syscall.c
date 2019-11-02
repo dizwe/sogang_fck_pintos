@@ -58,6 +58,7 @@ syscall_handler(struct intr_frame* f UNUSED)
 	case SYS_WAIT:                   /* Wait for a child process to die. */
 		check_address(f->esp + WORD);
 		f->eax = wait((pid_t) * (uint32_t*)(f->esp + WORD));
+		//printf("\n --- wait eax : %d\n",f->eax);
 		break;
 	case SYS_CREATE:                 /* Create a file. */
 		break;
@@ -129,20 +130,26 @@ pid_t exec(const char* cmd_lines) {
 //	printf("\n---start : %s",cmd_lines);
 	// exec-missing checkes whether cmd_lines really exists
 	file = filesys_open(cmd_lines);
+	
 	if(file ==NULL)
 	{
 		// because it can be child process I should return exit status , not exit directly
 		return -1;
 	}
 	tid_t result = process_execute(cmd_lines);
-
+	//printf("\n---- execut_result : %d\n",result);
 	// child does not print out anything if do not wait
-	process_wait(result);
-	return (pid_t)(result - 1);
+	//printf("\n process wait in exec\n");
+//	process_wait(result);
+	//printf("\n process wait done\n");
+	// if I return 81 I shouod not call 81... but In manual,,, I should -1 what...?
+	return (pid_t) result;
 }
 
 int wait(pid_t pid) {
 	//printf("userprog/syscall.c/wait start\n");
+	//printf("\n---child simpel test :%d\n",exec("child-simple"));
+	//printf("\n--- wait test %d\n", pid);
 	return process_wait((tid_t)pid);
 }
 
