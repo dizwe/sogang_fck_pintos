@@ -215,7 +215,7 @@ process_wait (tid_t child_tid )
 //			printf("waiting.... done");
 			list_remove(&(cur_thread->child_thread_elem));
 			sema_up(&(cur_thread->child_thread_lock));
-			printf("\n ---- exit %d\n",exit_status);
+			//printf("\n ---- exit %d\n",exit_status);
 			return exit_status;
 		}
 	}

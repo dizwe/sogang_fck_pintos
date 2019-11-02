@@ -59,7 +59,7 @@ syscall_handler(struct intr_frame* f UNUSED)
 	case SYS_WAIT:                   /* Wait for a child process to die. */
 		check_address(f->esp + WORD);
 		f->eax = wait((pid_t) * (uint32_t*)(f->esp + WORD));
-		printf("\n --- wait eax : %d\n",f->eax);
+	//	printf("\n --- wait eax : %d\n",f->eax);
 		break;
 	case SYS_CREATE:                 /* Create a file. */
 		break;
@@ -74,7 +74,7 @@ syscall_handler(struct intr_frame* f UNUSED)
 		f->eax = read((int)args[1], (void *)args[2], (unsigned)args[3]);
 		break;
 	case SYS_WRITE:                  /* Write to a file. */
-		printf("hihihihi");
+		//printf("hihihihi");
 		check_address(f->esp+WORD); 
   //	  printf("%d %d --data \n",args[1],args[3]);
 		f->eax = write((int)args[1], (void*)args[2], (unsigned)args[3]);
@@ -129,7 +129,7 @@ void exit(int status) {
 pid_t exec(const char* cmd_lines) {
 	struct file *file = NULL;
 	//printf("userprog/syscall.c/exec start\n");
-	printf("\n---start : %s",cmd_lines);
+	//printf("\n---start : %s",cmd_lines);
 	int idx = 0;
 	char real_file_name[128];
 	while(cmd_lines[idx] != ' ' && cmd_lines[idx]!='\0'){
@@ -143,23 +143,23 @@ pid_t exec(const char* cmd_lines) {
 	if(file ==NULL)
 	{
 		// because it can be child process I should return exit status , not exit directly
-		printf("FCK!!! EXIT!!!");
+//		printf("FCK!!! EXIT!!!");
 		return -1;
 	}
-	printf("----------%s", cmd_lines);
+	//printf("----------%s", cmd_lines);
 	tid_t result = process_execute(cmd_lines);
 //	printf("\n---- execut_result : %d\n",result);
 	// child does not print out anything if do not wait
-	printf("\n process wait in exec\n");
-	process_wait(result);
-	printf("\n process wait done\n");
-	return (pid_t)(result - 1);
+	//printf("\n process wait in exec\n");
+	//process_wait(result);
+	//printf("\n process wait done\n");
+	return (pid_t)result;
 }
 
 int wait(pid_t pid) {
 	//printf("userprog/syscall.c/wait start\n");
 	//printf("\n---child simpel test :%d\n",exec("child-simple"));
-	printf("\n--- wait test %d\n", pid);
+	//printf("\n--- wait test %d\n", pid);
 	return process_wait((tid_t)pid);
 }
 
