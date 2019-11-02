@@ -91,7 +91,6 @@ void esp_stack(char *file_name, void **esp){
 	for(i = argc-1; i>=0; i--){
 		*esp -= strlen(argv[i]) +1;
 		data_stack_len = data_stack_len + strlen(argv[i])+ 1;
-		//printf("\n---%s---\n",argv[i]);
 		// 복사하기
 		strlcpy(*esp, argv[i], strlen(argv[i]) + 1);
 		arg_addr[i] = *esp;
@@ -144,16 +143,33 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
+  char real_file_name[128]; // 4kb도 있는데 이걸로 해도 될듯. 
   struct intr_frame if_;
   bool success;
 
+  // !!!! filname은 run 뒤에 모든 변수 다 들어온다.
+  //printf("------%s----\n", file_name);
+  int idx=0;
+  // 끝도 아니고 띄어쓰기 앞까지
+  while(file_name[idx] != ' ' && file_name[idx]!= '\0')
+  {  real_file_name[idx] = file_name[idx];
+	 idx++;
+  }
+  // 끝맺음도 해줘야지
+  real_file_name[idx]='\0';	
+  // @@@@@
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (real_file_name, &if_.eip, &if_.esp);
+  // !!!!
+  if(success){
+	// setup이 완료되었다면
+	 esp_stack(file_name, &if_.esp);
+  }
   // @@@@
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -186,11 +202,11 @@ process_wait (tid_t child_tid )
 	struct thread* cur = thread_current();
 	struct thread* cur_thread = NULL;
 	struct list_elem* temp = NULL;
-	//printf("enter,,,\n");
+//	printf("enter,,,\n");
 	for (temp = list_begin(&cur->child_thread); temp != list_end(&cur->child_thread); 
 		temp = list_next(temp)) {
 		cur_thread = list_entry(temp, struct thread, child_thread_elem);
-		//printf("\n --- loop thred :%d with %d\n",cur_thread->tid,child_tid);
+//		printf("test\n");
 		if (child_tid == cur_thread->tid) {
 			sema_down(&(cur_thread->memory_preserve));
 
@@ -198,11 +214,10 @@ process_wait (tid_t child_tid )
 //			printf("waiting.... done");
 			list_remove(&(cur_thread->child_thread_elem));
 			sema_up(&(cur_thread->child_thread_lock));
-			//printf("\n ---- exit %d\n",exit_status);
 			return exit_status;
 		}
 	}
-	//printf("\n---- endend with -1!@!\n");
+	printf("\n---- endend with -1!@!\n");
 	return -1;
 }
 
@@ -340,22 +355,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-
-  // !!!! filname은 run 뒤에 모든 변수 다 들어온다.
-  char real_file_name[128]; 
-  //printf("------%s----\n", file_name);
-  int idx=0;
-  // 끝도 아니고 띄어쓰기 앞까지
-  while(file_name[idx] != ' ' && file_name[idx]!= '\0')
-  {  real_file_name[idx] = file_name[idx];
-	 idx++;
-  }
-  // 끝맺음도 해줘야지
-  
-  real_file_name[idx]='\0';	
-  // @@@@@
   /* Open executable file. */
-  file = filesys_open (real_file_name);
+  file = filesys_open (file_name);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -437,7 +438,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
-  esp_stack(file_name, esp);
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
