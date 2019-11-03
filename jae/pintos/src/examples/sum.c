@@ -2,8 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 
-int fibonacci(int n);
-int sum_of_four_int(int a, int b, int c, int d);
+int fibonacci1(int n);
+int sum_of_four_int1(int a, int b, int c, int d);
 int string_to_int(char *s);
 int 
 main(int argc, char** argv) {
@@ -13,14 +13,14 @@ main(int argc, char** argv) {
 	arg3 = string_to_int(argv[3]);
 	arg4 = string_to_int(argv[4]);
 
-	printf("%d %d\n", fibonacci(arg1), sum_of_four_int(arg1, arg2, arg3, arg4));
+	printf("%d %d\n", fibonacci1(arg1), sum_of_four_int1(arg1, arg2, arg3, arg4));
 
 	return 0;
 }
 
 //$$$$
 
-int fibonacci(int n) {
+int fibonacci1(int n) {
 	int a = 0, b = 1, f, i;
 	if (n == 0) return a;
 	if (n == 1) return b;
@@ -32,7 +32,7 @@ int fibonacci(int n) {
 	return f;
 }
 
-int sum_of_four_int(int a, int b, int c, int d) {
+int sum_of_four_int1(int a, int b, int c, int d) {
 	return (a + b + c + d);
 }
 
