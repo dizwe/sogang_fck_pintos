@@ -30,18 +30,19 @@ process_execute (const char *file_name)
 {
   char *fn_copy;
   tid_t tid;
-
+  //printf("=====---%s\n",file_name);
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
-
+ // printf("\n---- second %s\n", fn_copy);
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
+  //printf("\n ---process_execute pid : %d---\n", tid);
   return tid;
 }
 
@@ -61,7 +62,7 @@ void esp_stack(char *file_name, void **esp){
 
 	for(i=0; i<(int)strlen(file_name); i++){
 		// 전체 argument 개수구하기 for malloc
-		if(file_name[i]==' '&&file_name[i]!='\0'&&blanking==0){
+		if(file_name[i]==' '&&file_name[i]!='\0' && blanking==0){
 			argc +=1;
 			blanking = 1;
 		}else{
@@ -90,10 +91,10 @@ void esp_stack(char *file_name, void **esp){
 	for(i = argc-1; i>=0; i--){
 		*esp -= strlen(argv[i]) +1;
 		data_stack_len = data_stack_len + strlen(argv[i])+ 1;
+		//printf("\n---%s---\n",argv[i]);
 		// 복사하기
 		strlcpy(*esp, argv[i], strlen(argv[i]) + 1);
 		arg_addr[i] = *esp;
-//		printf("%s %p %p----\n", argv[i],*esp,arg_addr[i]);
 	}
 
 	//4. WORD ALIGN 계산하기
@@ -202,22 +203,23 @@ process_wait (tid_t child_tid )
 	struct thread* cur = thread_current();
 	struct thread* cur_thread = NULL;
 	struct list_elem* temp = NULL;
-//	printf("enter,,,\n");
+	//printf("enter,,,\n");
 	for (temp = list_begin(&cur->child_thread); temp != list_end(&cur->child_thread); 
 		temp = list_next(temp)) {
 		cur_thread = list_entry(temp, struct thread, child_thread_elem);
-//		printf("test\n");
+		//printf("\n --- loop thred :%d with %d\n",cur_thread->tid,child_tid);
 		if (child_tid == cur_thread->tid) {
-//			printf("waiting...i\n");
 			sema_down(&(cur_thread->memory_preserve));
 
 			exit_status = cur_thread->child_exit_status;
 //			printf("waiting.... done");
 			list_remove(&(cur_thread->child_thread_elem));
 			sema_up(&(cur_thread->child_thread_lock));
+			//printf("\n ---- exit %d\n",exit_status);
 			return exit_status;
 		}
 	}
+	//printf("\n---- endend with -1!@!\n");
 	return -1;
 }
 
