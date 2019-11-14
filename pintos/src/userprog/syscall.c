@@ -10,6 +10,8 @@
 #include "filesys/off_t.h"
 //#include "filesys/filesys.c"
 //#include "filesys/file.c"
+struct semaphore mutex, wrt;
+int readcount = 0;
 
 struct file{
 	struct inode * inode;
@@ -43,6 +45,9 @@ void fd_check(int fd);
 void
 syscall_init (void) 
 {
+  sema_init(&mutex, 1);
+  sema_init(&wrt, 1);
+  readcount = 0;
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -248,7 +253,16 @@ int filesize(int fd){
 }
 
 int read(int fd, void* buffer, unsigned size){
+
 	int i=0, ret = -1;
+	// READ & WRITED PROBLEM
+	sema_down(&mutex);
+	readcount++;
+	if(readcount == 1)
+		sema_down(&wrt);
+	sema_up(&mutex);
+	// MUTEX LOCK
+
 	check_address(buffer);
 //	struct thread * current_thread = thread_current();
 //	if(current_trhead -> file_descriptor[fd] == NULL) exit(-);
@@ -258,28 +272,38 @@ int read(int fd, void* buffer, unsigned size){
 			if(input_getc() == '\0'){
 				break;
 			}
-		}return i;	
+		}	
 	}
 	
 	else if(fd > 2)	{
-		fd_check(fd);
+	//	fd_check(fd);
 		struct thread * cur_thread = thread_current();
 	//	file_deny_write(cur_thread->file_descriptor[fd]);
 	//	if(cur_thread->file_descriptor[fd]->deny_write){
 	//		file_deny_write(cur_thread->file_descriptor[fd]);
 		//	ret = file_read(thread_current()->file_descriptor[fd], buffer, size);
 	//	}
-		ret = file_read(cur_thread->file_descriptor[fd],buffer,size);
+		ret = file_read(cur_thread->file_descriptor[fd],buffer,size );
 //		file_allow_write(cur_thread->file_descriptor[fd]);
 //		if(cur_thread->file_descriptor[fd]->deny_write
 		
-		return ret;
+		i = ret;
 	}
 	else{
-		exit(-1);
+		i = -1;
+	//	exit(-1);
 	}
+	sema_down(&mutex);
+	readcount--;
+	if(readcount == 0)
+		sema_up(&wrt);
+	sema_up(&mutex);
+
+	return i;
 }
+
 int write(int fd, const void* buffer, unsigned size) {
+	sema_down(&wrt);
 	check_address(buffer);
 	// printf("write!!haha\n");
 //	struct thread * current_thread = thread_current();
@@ -288,6 +312,7 @@ int write(int fd, const void* buffer, unsigned size) {
 	int ret;
 	if (fd == 1) {	
 		putbuf(buffer, size);
+		ret = size;
 	}
 	else if ( fd > 2){
 		fd_check(fd);
@@ -299,11 +324,14 @@ int write(int fd, const void* buffer, unsigned size) {
 	//	file_deny_write(cur_thread->file_descriptor[fd]);
 		ret = file_write(thread_current()->file_descriptor[fd], buffer, size);
 	//	file_allow_write(cur_thread->file_descriptor[fd]);
-		return ret;
+		
 	}
 	else{
-		exit(-1);
+		ret = -1;
 	}
+	sema_up(&wrt);
+
+	return ret;
 }
 
 void seek(int fd, unsigned position){
