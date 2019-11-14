@@ -88,10 +88,10 @@ syscall_handler(struct intr_frame* f UNUSED)
 		break;
 		//####
 	case SYS_FIBBO:
-		f->eax = fibo((int)args[1]);
+		f->eax = fibonacci((int)args[1]);
 		break;
 	case SYS_SUM:
-		f->eax = sum__((int)args[1], (int)args[2], (int)args[3], (int)args[4]);
+		f->eax = sum_of_four_int((int)args[1], (int)args[2], (int)args[3], (int)args[4]);
 		break;
 		//$$$$
 	default:
@@ -185,7 +185,7 @@ void check_address(void* addr)
 //$$$$
 
 
-int fibo(int n) {
+int fibonacci(int n) {
 	int a, b, ff, i;
 	a= 0 ; b = 1;
 	if (n == 0) return 0;
@@ -198,7 +198,7 @@ int fibo(int n) {
 	return ff;
 }
 
-int sum__(int a, int b, int c, int d) {
+int sum_of_four_int(int a, int b, int c, int d) {
 	return a + b + c + d;
 }
 //$$$$
