@@ -1,10 +1,21 @@
 #include "userprog/syscall.h"
 #include <stdio.h>
 #include <syscall-nr.h>
+#include <stdlib.h>
+#include <string.h>
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "lib/user/syscall.h"
+#include "filesys/off_t.h"
+//#include "filesys/filesys.c"
+//#include "filesys/file.c"
+
+struct file{
+	struct inode * inode;
+	off_t pos;
+	bool deny_write;
+}file;
 static void syscall_handler(struct intr_frame*);
 void halt(void);
 void exit(int status);
@@ -21,6 +32,8 @@ void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
 void check_address(void* addr);
+char * file_name_parser(const char * file);
+void fd_check(int fd);
 
 #define WORD sizeof(uint32_t)
 #define STDIN 0
@@ -62,36 +75,61 @@ syscall_handler(struct intr_frame* f UNUSED)
 	//	printf("\n --- wait eax : %d\n",f->eax);
 		break;
 	case SYS_CREATE:                 /* Create a file. */
+		check_address(f->esp + WORD);
+		check_address(f->esp + WORD + WORD);
+		f->eax = create((const char*)args[1], (unsigned)args[2] );
 		break;
 	case SYS_REMOVE:                 /* Delete a file. */
+		check_address(f->esp+WORD);
+		f->eax = remove((const char *)args[1]);
 		break;
 	case SYS_OPEN:                   /* Open a file. */
+		check_address(f->esp + WORD);
+		f->eax = open((const char *) args[1]);
 		break;
 	case SYS_FILESIZE:               /* Obtain a file's size. */
+		check_address(f->esp + WORD);
+		f->eax = filesize((int)args[1]);
 		break;
 	case SYS_READ:                   /* Read from a file. */
-		check_address(f->esp+WORD); 
+		check_address(f->esp+WORD);
+		check_address(f->esp+WORD+WORD);
+		check_address(f->esp+WORD+WORD+WORD); 
 		f->eax = read((int)args[1], (void *)args[2], (unsigned)args[3]);
 		break;
 	case SYS_WRITE:                  /* Write to a file. */
 		//printf("hihihihi");
 		check_address(f->esp+WORD); 
+		check_address(f->esp+WORD+WORD);
+		check_address(f->esp+WORD+WORD+WORD);
   //	  printf("%d %d --data \n",args[1],args[3]);
 		f->eax = write((int)args[1], (void*)args[2], (unsigned)args[3]);
 		// write((int) * (uint32_t*)(f->esp + WORD), (void*)*(uint32_t *)(f->esp+2*WORD),(unsigned)*(uint32_t*)(f->esp+3*WORD));
 		break;
 	case SYS_SEEK:                   /* Change position in a file. */
+		check_address(f->esp+WORD);
+		check_address(f->esp + WORD + WORD);
+		seek((int) args[1], (unsigned) args[2]);
 		break;
 	case SYS_TELL:                   /* Report current position in a file. */
+		check_address(f->esp+WORD);
+		f->eax = tell((int)args[1]);
 		break;
 	case SYS_CLOSE:                  /* Close a file. */
+		check_address(f->esp + WORD);
+		close((int)args[1]);
 		break;
 		//####
 	case SYS_FIBBO:
-		fibonacci((int)args[1]);
+		check_address(f->esp+WORD);
+		f->eax = fibo((int)args[1]);
 		break;
 	case SYS_SUM:
-		sum_of_four_int((int)args[1], (int)args[2], (int)args[3], (int)args[4]);
+		check_address(f->esp + WORD);
+		check_address(f->esp + WORD + WORD);
+		check_address(f->esp + WORD + WORD + WORD);
+		check_address(f->esp + WORD + WORD + WORD + WORD);
+		f->eax = sum__((int)args[1], (int)args[2], (int)args[3], (int)args[4]);
 		break;
 		//$$$$
 	default:
@@ -100,36 +138,35 @@ syscall_handler(struct intr_frame* f UNUSED)
 }
 
 void halt(void) {
-	//printf("userprog/syscall.c/halt start\n");
 	shutdown_power_off();
 }
 
 void exit(int status) {
-	//printf("userprog/syscall.c/exit start\n");
-	struct thread* cur = thread_current();
-    char real_file_name[128]; // 4kb?¿¿?¿¿?¿¿ ¿¿. 
+    struct thread* cur = thread_current();
+    char real_file_name[128];
 
-    int idx=0;
-    // ¿¿ ¿¿?¿¿¿¿ ¿¿? 
+    int idx=0, i;
     while((cur->name)[idx] != ' ' && (cur->name)[idx]!= '\0')
     {  real_file_name[idx] = (cur->name)[idx];
 	   idx++;
     }
-    // ¿¿¿¿ ¿¿¿¿
     real_file_name[idx]='\0';	
 	
 	printf("%s: exit(%d)\n", real_file_name, status);
-	//printf("-----%d status ",status);
-	// change ""child"" status
 	cur->child_exit_status = status;
+	
+	struct thread * current_thread = thread_current();
+	for (i = 3; i < 128; i++){
+		if(current_thread->file_descriptor[i] != NULL){
+			close(i);
+		}
+	}
 	thread_exit();
 
 }
 
 pid_t exec(const char* cmd_lines) {
 	struct file *file = NULL;
-	//printf("userprog/syscall.c/exec start\n");
-	//printf("\n---start : %s",cmd_lines);
 	int idx = 0;
 	char real_file_name[128];
 	while(cmd_lines[idx] != ' ' && cmd_lines[idx]!='\0'){
@@ -137,64 +174,164 @@ pid_t exec(const char* cmd_lines) {
 		idx++;
 	}
 	real_file_name[idx]='\0';
-	// exec-missing checkes whether cmd_lines really exists
 	file = filesys_open(real_file_name);
 	
 	if(file ==NULL)
 	{
-		// because it can be child process I should return exit status , not exit directly
-//		printf("FCK!!! EXIT!!!");
 		return -1;
 	}
-	//printf("----------%s", cmd_lines);
 	tid_t result = process_execute(cmd_lines);
-//	printf("\n---- execut_result : %d\n",result);
-	// child does not print out anything if do not wait
-	//printf("\n process wait in exec\n");
-	//process_wait(result);
-	//printf("\n process wait done\n");
 	return (pid_t)result;
 }
 
 int wait(pid_t pid) {
-	//printf("userprog/syscall.c/wait start\n");
-	//printf("\n---child simpel test :%d\n",exec("child-simple"));
-	//printf("\n--- wait test %d\n", pid);
 	return process_wait((tid_t)pid);
 }
 
-bool create(const char* file, unsigned initial_size);
-bool remove(const char* file);
-int open(const char* file);
-int filesize(int fd);
-int read(int fd, void* buffer, unsigned size){
+bool create(const char* file, unsigned initial_size){
+	if (file == NULL) exit(-1);
+	check_address(file);
+
+	return filesys_create(file, initial_size);
+}
+
+bool remove(const char* file){
+	if(file == NULL) exit ( -1);
+	check_address(file);
+//	int i;
+//	char *file_name;
+	
+//	for(i = 0; file[i] != ' ' && file[i] != '\0'; i++);
+//	file_name = (char *)malloc(sizeof(char) * (i + 1));
+//	strlcpy(file_name, file, i);
+//	file_name[i] = '\0';
+	
+//	free(file_name);
+	return filesys_remove(file);
+}
+
+int open(const char* file){
+	if(file == NULL) exit(-1);
+	check_address(file);
 	int i;
-	if(fd != STDIN){
-		return -1;
+	char * file_name;
+	file_name = file_name_parser(file);
+	struct file * opening_file = filesys_open(file);
+	if(opening_file == NULL) return -1;
+	else if (opening_file != NULL){
+		for(i = 3; i < 128; i++){
+			if(thread_current()->file_descriptor[i] == NULL){
+				thread_current()->file_descriptor[i] = opening_file;
+				// ¿¿ ¿¿¿¿ thread¿ ¿¿¿ ¿¿¿¿¿ ¿¿¿ ¿¿¿ 
+				// ¿¿ ¿¿¿ ¿¿¿ ¿¿.
+				if(!strcmp(file, thread_current()->name)){
+					file_deny_write(opening_file);
+				}
+				
+				return i;
+			}
+		}	
 	}
-	for(i=0;i<size;i++){
-		if(input_getc()=='\0'){
-			break;
-		}
+	else {
+		printf("Error breaks out at open file\n");
+		exit(-1);
 	}
 
-	return i;
+}
+
+int filesize(int fd){
+	struct thread * current_thread = thread_current();
+	int i;
+//	if(current_thread->file_descriptor[fd] == NULL) exit(-1);
+	fd_check(fd);
+	return (int)file_length(thread_current()->file_descriptor[fd]);
+}
+
+int read(int fd, void* buffer, unsigned size){
+	int i=0, ret = -1;
+	check_address(buffer);
+//	struct thread * current_thread = thread_current();
+//	if(current_trhead -> file_descriptor[fd] == NULL) exit(-);
+//	fd_check(fd);
+	if(fd == 0){
+		for(i = 0; i < size; i++){
+			if(input_getc() == '\0'){
+				break;
+			}
+		}return i;	
+	}
+	
+	else if(fd > 2)	{
+		fd_check(fd);
+		struct thread * cur_thread = thread_current();
+	//	file_deny_write(cur_thread->file_descriptor[fd]);
+	//	if(cur_thread->file_descriptor[fd]->deny_write){
+	//		file_deny_write(cur_thread->file_descriptor[fd]);
+		//	ret = file_read(thread_current()->file_descriptor[fd], buffer, size);
+	//	}
+		ret = file_read(cur_thread->file_descriptor[fd],buffer,size);
+//		file_allow_write(cur_thread->file_descriptor[fd]);
+//		if(cur_thread->file_descriptor[fd]->deny_write
+		
+		return ret;
+	}
+	else{
+		exit(-1);
+	}
 }
 int write(int fd, const void* buffer, unsigned size) {
+	check_address(buffer);
 	// printf("write!!haha\n");
-	 // fd´Â ÆÄÀÏ µð½ºÅ©¸³ÅÍ -> ÆÄÀÏÀÌ ¿ÀÇÂµÇ°í ³ª¸é ÆÄÀÏ µð½ºÅ©¸³ÅÍ¶ó´Â ¤·´Ïµ¦½º ¹øÈ£°¡ ¹ÝÈ¯µÈ´Ù.
-	if (fd != STDOUT) {
-		return -1;
+//	struct thread * current_thread = thread_current();
+//	if(current_thread -> file_descriptor[fd] == NULL) exit(-1);
+//	fd_check(fd);
+	int ret;
+	if (fd == 1) {	
+		putbuf(buffer, size);
 	}
-
-	// size
-	putbuf(buffer, size);
-	//  printf("\n ntest");
-	return size;
+	else if ( fd > 2){
+		fd_check(fd);
+		struct thread * cur_thread = thread_current();
+		struct file * cur_file = cur_thread->file_descriptor[fd];
+		if(cur_file->deny_write){
+			file_deny_write(cur_file);
+		}
+	//	file_deny_write(cur_thread->file_descriptor[fd]);
+		ret = file_write(thread_current()->file_descriptor[fd], buffer, size);
+	//	file_allow_write(cur_thread->file_descriptor[fd]);
+		return ret;
+	}
+	else{
+		exit(-1);
+	}
 }
-void seek(int fd, unsigned position);
-unsigned tell(int fd);
-void close(int fd);
+
+void seek(int fd, unsigned position){
+//	struct thread * current_thread = thread_current();
+//	if(current_thread->file_descriptor[fd] == NULL) exit(-1);
+
+	fd_check(fd);
+	return file_seek(thread_current()->file_descriptor[fd], position);
+}
+
+unsigned tell(int fd){
+	fd_check(fd);
+	return (unsigned)file_tell(thread_current()->file_descriptor[fd]);
+}
+
+void close(int fd){
+//	fd_check(fd);
+//	int i;
+	struct thread * cur_thread = thread_current();
+	struct file * fp = cur_thread->file_descriptor[fd];
+//	file_allow_write(fp);
+// 	file_close(thread_current()->file_descriptor[fd]);
+	
+	if(cur_thread -> file_descriptor[fd] == NULL) exit(-1);
+	cur_thread->file_descriptor[fd] = NULL;
+	file_close(fp);	
+}
+
 void check_address(void* addr) 
 {
 	if (!is_user_vaddr(addr)) 
@@ -205,11 +342,11 @@ void check_address(void* addr)
 //$$$$
 
 
-int fibonacci(int n) {
+int fibo(int n) {
 	int a, b, ff, i;
+	a= 0 ; b = 1;
 	if (n == 0) return 0;
 	if (n == 1) return 1;
-
 	for (i = 2; i <= n; i++) {
 		ff = a + b;
 		a = b;
@@ -218,8 +355,25 @@ int fibonacci(int n) {
 	return ff;
 }
 
-int sum_of_four_int(int a, int b, int c, int d) {
+int sum__(int a, int b, int c, int d) {
 	return a + b + c + d;
 }
 //$$$$
+
+// Input : ¿¿ ¿¿ ¿¿
+// OutPut : input ¿¿ ¿¿ ¿¿
+char * file_name_parser(const char * file){
+	int i;
+	char *file_name;
+	for(i = 0; file[i] != ' ' && file[i] != '\0'; i++);
+	file_name = (char *)malloc(sizeof(char) * (i + 1));
+	strlcpy(file_name, file, i);
+	file_name[i] = '\0';
+	return file_name;
+}
+
+void fd_check(int fd){
+	if(thread_current()->file_descriptor[fd] == NULL) exit(-1);
+	return;
+}
 

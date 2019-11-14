@@ -144,16 +144,33 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
+  char real_file_name[128]; // 4kb도 있는데 이걸로 해도 될듯. 
   struct intr_frame if_;
   bool success;
 
+  // !!!! filname은 run 뒤에 모든 변수 다 들어온다.
+  //printf("------%s----\n", file_name);
+  int idx=0;
+  // 끝도 아니고 띄어쓰기 앞까지
+  while(file_name[idx] != ' ' && file_name[idx]!= '\0')
+  {  real_file_name[idx] = file_name[idx];
+	 idx++;
+  }
+  // 끝맺음도 해줘야지
+  real_file_name[idx]='\0';	
+  // @@@@@
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load (file_name, &if_.eip, &if_.esp);
+  success = load (real_file_name, &if_.eip, &if_.esp);
+  // !!!!
+  if(success){
+	// setup이 완료되었다면
+	 esp_stack(file_name, &if_.esp);
+  }
   // @@@@
   /* If load failed, quit. */
   palloc_free_page (file_name);
@@ -340,22 +357,8 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-
-  // !!!! filname은 run 뒤에 모든 변수 다 들어온다.
-  char real_file_name[128]; 
-  //printf("------%s----\n", file_name);
-  int idx=0;
-  // 끝도 아니고 띄어쓰기 앞까지
-  while(file_name[idx] != ' ' && file_name[idx]!= '\0')
-  {  real_file_name[idx] = file_name[idx];
-	 idx++;
-  }
-  // 끝맺음도 해줘야지
-  
-  real_file_name[idx]='\0';	
-  // @@@@@
   /* Open executable file. */
-  file = filesys_open (real_file_name);
+  file = filesys_open (file_name);
   if (file == NULL) 
     {
       printf ("load: %s: open failed\n", file_name);
@@ -437,7 +440,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
   /* Set up stack. */
   if (!setup_stack (esp))
     goto done;
-  esp_stack(file_name, esp);
   /* Start address. */
   *eip = (void (*) (void)) ehdr.e_entry;
 
