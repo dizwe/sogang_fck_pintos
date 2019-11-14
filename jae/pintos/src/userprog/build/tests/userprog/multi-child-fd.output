@@ -1,0 +1,56 @@
+Copying tests/userprog/multi-child-fd to scratch partition...
+Copying ../../tests/userprog/sample.txt to scratch partition...
+Copying tests/userprog/child-close to scratch partition...
+qemu -hda /tmp/rJpo1uhDHf.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run multi-child-fd
+Pintos booting with 3,968 kB RAM...
+367 pages available in kernel pool.
+367 pages available in user pool.
+Calibrating timer...  314,163,200 loops/s.
+hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 4,096 sectors (2 MB), Pintos file system (21)
+hda3: 213 sectors (106 kB), Pintos scratch (22)
+filesys: using hda2
+scratch: using hda3
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'multi-child-fd' into the file system...
+Putting 'sample.txt' into the file system...
+Putting 'child-close' into the file system...
+Erasing ustar archive...
+Executing 'multi-child-fd':
+(multi-child-fd) begin
+(multi-child-fd) open "sample.txt"
+(child-close) begin
+child-close: exit(-1)
+(multi-child-fd) wait(exec()) = -1
+(multi-child-fd) size of sample.txt (243) differs from expected (239)
+(multi-child-fd) 96 bytes read starting at offset 70 in "sample.txt" differ from expected.
+(multi-child-fd) Showing first differing 64 bytes.
+(multi-child-fd) Data actually read:
+00000040                    0d 0a-20 74 6f 75 63 68 69 6e |      .. touchin|
+00000050  67 20 61 6e 79 74 68 69-6e 67 2c 20 79 6f 75 20 |g anything, you |
+00000060  77 6f 75 6c 64 20 62 75-69 6c 64 20 75 70 20 73 |would build up s|
+00000070  6f 20 6d 61 6e 79 20 65-6c 65 63 74 72 6f 6e 73 |o many electrons|
+00000080  20 74 68 61 74 20                               | that           |
+(multi-child-fd) Expected data:
+00000040                    0a 20-74 6f 75 63 68 69 6e 67 |      . touching|
+00000050  20 61 6e 79 74 68 69 6e-67 2c 20 79 6f 75 20 77 | anything, you w|
+00000060  6f 75 6c 64 20 62 75 69-6c 64 20 75 70 20 73 6f |ould build up so|
+00000070  20 6d 61 6e 79 20 65 6c-65 63 74 72 6f 6e 73 20 | many electrons |
+00000080  74 68 61 74 20 79                               |that y          |
+(multi-child-fd) 96 bytes read starting at offset 70 in "sample.txt" differ from expected: FAILED
+multi-child-fd: exit(1)
+Execution of 'multi-child-fd' complete.
+Timer: 83 ticks
+Thread: 5 idle ticks, 75 kernel ticks, 3 user ticks
+hda2 (filesys): 160 reads, 434 writes
+hda3 (scratch): 212 reads, 2 writes
+Console: 2253 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...

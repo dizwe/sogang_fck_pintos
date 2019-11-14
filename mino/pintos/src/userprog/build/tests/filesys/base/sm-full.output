@@ -1,0 +1,36 @@
+Copying tests/filesys/base/sm-full to scratch partition...
+qemu -hda /tmp/NF6kbWMSvg.dsk -m 4 -net none -nographic -monitor null
+PiLo hda1
+Loading.........
+Kernel command line: -q -f extract run sm-full
+Pintos booting with 3,968 kB RAM...
+367 pages available in kernel pool.
+367 pages available in user pool.
+Calibrating timer...  419,020,800 loops/s.
+hda: 5,040 sectors (2 MB), model "QM00001", serial "QEMU HARDDISK"
+hda1: 147 sectors (73 kB), Pintos OS kernel (20)
+hda2: 4,096 sectors (2 MB), Pintos file system (21)
+hda3: 104 sectors (52 kB), Pintos scratch (22)
+filesys: using hda2
+scratch: using hda3
+Formatting file system...done.
+Boot complete.
+Extracting ustar archive from scratch device into file system...
+Putting 'sm-full' into the file system...
+Erasing ustar archive...
+Executing 'sm-full':
+(sm-full) begin
+(sm-full) create "quux"
+(sm-full) open "quux"
+(sm-full) writing "quux"
+(sm-full) write 5678 bytes at offset 0 in "quux" failed: FAILED
+sm-full: exit(1)
+Execution of 'sm-full' complete.
+Timer: 78 ticks
+Thread: 1 idle ticks, 76 kernel ticks, 1 user ticks
+hda2 (filesys): 64 reads, 212 writes
+hda3 (scratch): 103 reads, 2 writes
+Console: 992 characters output
+Keyboard: 0 keys pressed
+Exception: 0 page faults
+Powering off...
