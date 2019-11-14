@@ -19,7 +19,7 @@ struct file{
 static void syscall_handler(struct intr_frame*);
 void halt(void);
 void exit(int status);
-// In lib/user/syscall.h, there is pid_t information
+// lib/user/syscall.h에pid_t 저장되어있음
 pid_t exec(const char* cmd_lines);
 int wait(pid_t pid);
 bool create(const char* file, unsigned initial_size);
@@ -142,7 +142,6 @@ void halt(void) {
 }
 
 void exit(int status) {
-<<<<<<< HEAD:jae/pintos/src/userprog/syscall.c
     struct thread* cur = thread_current();
     char real_file_name[128];
 
@@ -151,19 +150,6 @@ void exit(int status) {
     {  real_file_name[idx] = (cur->name)[idx];
 	   idx++;
     }
-=======
-	//printf("userprog/syscall.c/exit start\n");
-	struct thread* cur = thread_current();
-    char real_file_name[128]; // 4kb would 128
-
-    int idx=0;
-    // parsing real file name
-	while((cur->name)[idx] != ' ' && (cur->name)[idx]!= '\0')
-    {  real_file_name[idx] = (cur->name)[idx];
-	   idx++;
-    }
-    // write the end
->>>>>>> 2448b8317fe14e1af3e9abef68a8a6d2f47a1033:pintos/src/userprog/syscall.c
     real_file_name[idx]='\0';	
 	
 	printf("%s: exit(%d)\n", real_file_name, status);
@@ -296,18 +282,12 @@ int read(int fd, void* buffer, unsigned size){
 int write(int fd, const void* buffer, unsigned size) {
 	check_address(buffer);
 	// printf("write!!haha\n");
-<<<<<<< HEAD:jae/pintos/src/userprog/syscall.c
 //	struct thread * current_thread = thread_current();
 //	if(current_thread -> file_descriptor[fd] == NULL) exit(-1);
 //	fd_check(fd);
 	int ret;
 	if (fd == 1) {	
 		putbuf(buffer, size);
-=======
-	 // fd is a file descriptor -> when file opens, return file decripter index nubmer
-	if (fd != STDOUT) {
-		return -1;
->>>>>>> 2448b8317fe14e1af3e9abef68a8a6d2f47a1033:pintos/src/userprog/syscall.c
 	}
 	else if ( fd > 2){
 		fd_check(fd);

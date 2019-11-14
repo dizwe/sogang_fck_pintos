@@ -1,6 +1,0 @@
-Use of literal control characters in variable names is deprecated at /sogang/under/cse20150038/pintos/src/utils/pintos line 912.
-Prototype mismatch: sub main::SIGVTALRM () vs none at /sogang/under/cse20150038/pintos/src/utils/pintos line 936.
-Constant subroutine SIGVTALRM redefined at /sogang/under/cse20150038/pintos/src/utils/pintos line 928.
-WARNING: Image format was not specified for '/tmp/5qTegiF225.dsk' and probing guessed raw.
-         Automatically detecting the format is dangerous for raw images, write operations on block 0 will be restricted.
-         Specify the 'raw' format explicitly to remove the restrictions.

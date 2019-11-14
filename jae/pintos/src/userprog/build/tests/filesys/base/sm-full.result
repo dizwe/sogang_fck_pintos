@@ -1,2 +1,0 @@
-FAIL
-run: read of 512 bytes at offset 512 in "quux" returned 4294967295: FAILED
