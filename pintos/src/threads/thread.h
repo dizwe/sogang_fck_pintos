@@ -104,6 +104,7 @@ struct thread
 	int child_exit_status;
 	struct file* file_descriptor[128];
 	int flag;
+	int already_wait;
 #endif
 
     /* Owned by thread.c. */

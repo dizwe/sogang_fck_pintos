@@ -17,7 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-int ffllaagg = 0;
+//int ffllaagg = 0;
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -51,7 +51,8 @@ process_execute (const char *file_name)
 		return -1;
 	}
   tid = thread_create (command_name, PRI_DEFAULT, start_process, fn_copy);
-//  sema_down(&thread_current()->exe_child);
+  free(command_name);
+  sema_down(&thread_current()->exe_child);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   //printf("\n ---process_execute pid : %d---\n", tid);
@@ -160,6 +161,9 @@ void esp_stack(char *file_name, void **esp){
 	**(uint32_t **)esp = 0;
 	//offset, buffer, size, ascii
 //	hex_dump(*esp,*esp,100,1);
+//	free(argv);
+//	free(ard_addr);
+//	free(temp);	
 }
 // @@@
 
@@ -191,7 +195,8 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (real_file_name, &if_.eip, &if_.esp);
-	
+//  free(real_file_name);
+  sema_up(&thread_current()->parent->exe_child);	
   // !!!!
   if(success){
 	// setup이 완료되었다면
@@ -201,11 +206,12 @@ start_process (void *file_name_)
   /* If load failed, quit. */
   palloc_free_page (file_name);
 //printf("PIDPIDUP : %d\n", thread_current()->tid);
-  sema_up(&thread_current()->parent->exe_child);
+//  sema_up(&thread_current()->parent->exe_child);
 //printf("PIDPIDDOWN: %d\n", thread_current()->tid);
   if (!success) {
-	ffllaagg = 1;
+//	ffllaagg = 1;
 	thread_current()->flag = 1;
+//	thread_exit();
 	exit(-1);
 }
 //    thread_exit ();
@@ -240,19 +246,17 @@ process_wait (tid_t child_tid )
 	for (temp = list_begin(&cur->child_thread); temp != list_end(&cur->child_thread); 
 		temp = list_next(temp)) {
 		cur_thread = list_entry(temp, struct thread, child_thread_elem);
-		//printf("\n --- loop thred :%d with %d\n",cur_thread->tid,child_tid);
+//		printf("at process_wait... child_tid : %d cur_thread->tid : %d\n", child_tid, cur_thread->tid);
 		if (child_tid == cur_thread->tid) {
+//			cur_thread->already_wait = 1;
 			sema_down(&(cur_thread->memory_preserve));
 
 			exit_status = cur_thread->child_exit_status;
-//			printf("waiting.... done");
 			list_remove(&(cur_thread->child_thread_elem));
 			sema_up(&(cur_thread->child_thread_lock));
-			//printf("\n ---- exit %d\n",exit_status);
 			return exit_status;
 		}
 	}
-	//printf("\n---- endend with -1!@!\n");
 	return -1;
 }
 

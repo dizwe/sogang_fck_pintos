@@ -97,6 +97,7 @@ wait_children (pid_t pids[], size_t child_cnt)
   
   for (i = 0; i < child_cnt; i++) 
     {
+//	printf("pids[%d] : %d\n", i, pids[i]);
       int status = wait (pids[i]);
       CHECK (status == (int) i,
              "wait for child %zu of %zu returned %d (expected %zu)",

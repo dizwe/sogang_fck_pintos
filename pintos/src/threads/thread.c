@@ -486,6 +486,7 @@ init_thread (struct thread *t, const char *name, int priority)
 	list_init(&(t->child_thread));
 	list_push_back(&(running_thread()->child_thread), &(t->child_thread_elem));
 	t->flag = 0;
+	t->already_wait = 0;
 #endif
 }
 

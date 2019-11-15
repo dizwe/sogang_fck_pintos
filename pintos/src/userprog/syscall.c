@@ -158,29 +158,25 @@ void exit(int status) {
 	   idx++;
     }
     real_file_name[idx]='\0';	
-//	printf("PID : %d\n Parent : %p\n", thread_current()->tid, thread_current()->parent);
-			////////////////test code
-		//for (i = 0; i < n; i++) cout << "test code : " << b[i] << endl;
-
-		///////////////
 	printf("%s: exit(%d)\n", real_file_name, status);
 	cur->child_exit_status = status;
 	
 	struct thread * current_thread = thread_current();
 	for (i = 3; i < 128; i++){
-		if(current_thread->file_descriptor[i] != NULL){
+//		if(current_thread->file_descriptor[i] != NULL){
 			close(i);
-		}
+//		}
 	}
 	struct thread* temp_thread = NULL;
 	struct list_elem * temp_elem = NULL;
-	/*
+	
 	for(temp_elem = list_begin(&thread_current()->child_thread); temp_elem != list_end(&thread_current()->child_thread); temp_elem = list_next(temp_elem)){
 	temp_thread = list_entry(temp_elem, struct thread, child_thread_elem);
-	if(temp_thread->child_exit_status == -1){
-	 process_wait(temp_thread->child_thread_elem->tid);
-	}
-}*/
+//	if(temp_thread->child_exit_status == -1){
+//	printf("¿¿¿¿¿\n");
+	 process_wait(temp_thread->tid);
+//	}
+}
 	/*
 	struct list_elem * e;
 	struct thread * th = thread_current();
@@ -208,7 +204,6 @@ pid_t exec(const char* cmd_lines) {
 	
 	if(file ==NULL)
 	{
-//	printf("¿¿¿¿ ¿\n");
 		return -1;
 	}
 //	lock_acquire(&file_lock);
@@ -239,16 +234,7 @@ bool create(const char* file, unsigned initial_size){
 bool remove(const char* file){
 	if(file == NULL) exit ( -1);
 	check_address(file);
-//	int i;
-//	char *file_name;
 	
-//	for(i = 0; file[i] != ' ' && file[i] != '\0'; i++);
-//	file_name = (char *)malloc(sizeof(char) * (i + 1));
-//	strlcpy(file_name, file, i);
-//	file_name[i] = '\0';
-	
-//	free(file_name);
-//	lock_acquire(&file_lock);
 	bool boolean = filesys_remove(file);
 //	lock_release(&file_lock);
 	return boolean;
@@ -262,14 +248,14 @@ int open(const char* file){
 //	sema_down(&wrt);
 	int i, ret= -1;
 	char * file_name;
-	file_name = file_name_parser(file);
+//	file_name = file_name_parser(file);
 	struct file * opening_file = filesys_open(file);
 	if(opening_file == NULL) {
 		ret = -1;
 	}
 	else{
 		for(i = 3; i < 128; i++){
-			if(strcmp(thread_name(), file) == 0){
+			if((thread_current()->file_descriptor[i] == NULL) && (strcmp(thread_name(), file) == 0)){
 				file_deny_write(opening_file);
 			}
 
@@ -325,7 +311,7 @@ int read(int fd, void* buffer, unsigned size){
 //		fd_check(fd);
 		struct thread * cur_thread = thread_current();
 		if(thread_current()->file_descriptor[fd] == NULL) {
-		//	lock_release(&file_lock);
+			lock_release(&file_lock);
 			exit(-1);	
 		}
 	//	file_deny_write(cur_thread->file_descriptor[fd]);

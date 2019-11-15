@@ -125,6 +125,7 @@ main (int argc, char *argv[])
 //	printf("EXPECTED DEPTH\n");
   for (i = 0; i < howmany; i++)
     {
+	printf("i is :::: %d\n", i);
       pid_t child_pid;
 
       /* Spawn a child that will be abnormally terminated.
