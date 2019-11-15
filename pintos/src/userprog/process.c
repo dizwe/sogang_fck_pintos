@@ -17,7 +17,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
-
+int ffllaagg = 0;
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 
@@ -61,7 +61,7 @@ process_execute (const char *file_name)
   for ( ele = list_begin(&thread_current()->child_thread); ele != list_end(&thread_current()->child_thread); ele = list_next(ele)){
   thr = list_entry(ele, struct thread, child_thread_elem);
 //	printf("FUCKINGSHI\n");
-  if(thr->child_exit_status == -1){
+  if(thr->flag == 1){
 //	printf("HIHIHIHIHIHI\n");
 //	printf("return process waiting\n");
 	return process_wait(tid);
@@ -203,9 +203,12 @@ start_process (void *file_name_)
 //printf("PIDPIDUP : %d\n", thread_current()->tid);
   sema_up(&thread_current()->parent->exe_child);
 //printf("PIDPIDDOWN: %d\n", thread_current()->tid);
-  if (!success) 
-    thread_exit ();
-//	exit(-1);
+  if (!success) {
+	ffllaagg = 1;
+	thread_current()->flag = 1;
+	exit(-1);
+}
+//    thread_exit ();
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in

@@ -103,6 +103,7 @@ struct thread
 	struct list_elem child_thread_elem;
 	int child_exit_status;
 	struct file* file_descriptor[128];
+	int flag;
 #endif
 
     /* Owned by thread.c. */

@@ -265,20 +265,11 @@ int open(const char* file){
 	file_name = file_name_parser(file);
 	struct file * opening_file = filesys_open(file);
 	if(opening_file == NULL) {
-//		sema_up(&wrt);
-//		lock_release(&file_lock);
 		ret = -1;
 	}
-//	else if(strcmp(file, thread_name()) == 0){
-//		file_deny_write(opening_file);
-//	}
 	else{
-		//if (strcmp(thread_name(), file) == 0){
-		//	file_deny_write(opening_file);
-	//	}//
-	
 		for(i = 3; i < 128; i++){
-			if(strcmp(thread_name(), file_name) == 0){
+			if(strcmp(thread_name(), file) == 0){
 				file_deny_write(opening_file);
 			}
 
@@ -316,18 +307,7 @@ int filesize(int fd){
 }
 
 int read(int fd, void* buffer, unsigned size){
-
 	int i=-1, ret = -1;
-	// READ & WRITED PROBLEM
-	/*
-	sema_down(&mutex);
-	readcount++;
-	if(readcount == 1)
-		sema_down(&wrt);
-	sema_up(&mutex);
-	*/
-	// MUTEX LOCK
-
 	check_address(buffer);
 	lock_acquire(&file_lock);
 //	struct thread * current_thread = thread_current();
@@ -345,7 +325,7 @@ int read(int fd, void* buffer, unsigned size){
 //		fd_check(fd);
 		struct thread * cur_thread = thread_current();
 		if(thread_current()->file_descriptor[fd] == NULL) {
-			lock_release(&file_lock);
+		//	lock_release(&file_lock);
 			exit(-1);	
 		}
 	//	file_deny_write(cur_thread->file_descriptor[fd]);
