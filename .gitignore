@@ -1,3 +1,8 @@
 .vs/
 jae/pintos/src/.vs/
 *.ipch
+*.swk
+*.swl
+*.swn
+*.swo
+*.swm
