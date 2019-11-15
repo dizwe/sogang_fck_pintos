@@ -140,7 +140,8 @@ sub get_core_output {
 	$start = $i + 1, last
 	  if ($process) = $output[$i] =~ /^Executing '(\S+).*':$/;
     }
-	my ($end);
+
+    my ($end);
     for my $i ($start...$#output) {
 	$end = $i - 1, last if $output[$i] =~ /^Execution of '.*' complete.$/;
     }
