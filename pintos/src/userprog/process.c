@@ -29,7 +29,15 @@ tid_t
 process_execute (const char *file_name) 
 {
   char *fn_copy;
+  int i = 0, count = 0;
   tid_t tid;
+  char* command_name;
+  for ( i = 0; file_name[i] != ' ' && file_name[i] != '\0'; i++);
+  command_name = ((char *)malloc(sizeof(char) * (i + 1)));
+  strlcpy(command_name, file_name, i+1);
+  command_name[i] = '\0';
+	printf("PID : %d\n", thread_current()->tid);
+// printf("%s\n", command_name);
   //printf("=====---%s\n",file_name);
   /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
@@ -39,10 +47,27 @@ process_execute (const char *file_name)
   strlcpy (fn_copy, file_name, PGSIZE);
  // printf("\n---- second %s\n", fn_copy);
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
+	if(filesys_open(command_name) == NULL){
+		return -1;
+	}
+  tid = thread_create (command_name, PRI_DEFAULT, start_process, fn_copy);
+  sema_down(&thread_current()->exe_child);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   //printf("\n ---process_execute pid : %d---\n", tid);
+	
+  struct list_elem * ele = NULL;
+  struct thread * thr = NULL;
+  for ( ele = list_begin(&thread_current()->child_thread); ele != list_end(&thread_current()->child_thread); ele = list_next(ele)){
+  thr = list_entry(ele, struct thread, child_thread_elem);
+	printf("FUCKINGSHI\n");
+  if(thr->child_exit_status == -1){
+	printf("HIHIHIHIHIHI\n");
+//	printf("return process waiting\n");
+	return process_wait(tid);
+  }
+}
+//printf("asdasdad");
   return tid;
 }
 
@@ -166,6 +191,7 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (real_file_name, &if_.eip, &if_.esp);
+	
   // !!!!
   if(success){
 	// setup이 완료되었다면
@@ -174,8 +200,12 @@ start_process (void *file_name_)
   // @@@@
   /* If load failed, quit. */
   palloc_free_page (file_name);
+printf("PIDPIDUP : %d\n", thread_current()->tid);
+  sema_up(&thread_current()->parent->exe_child);
+printf("PIDPIDDOWN: %d\n", thread_current()->tid);
   if (!success) 
-    thread_exit ();
+//    thread_exit ();
+	exit(-1);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in

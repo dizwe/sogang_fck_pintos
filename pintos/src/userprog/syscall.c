@@ -17,7 +17,9 @@ struct file{
 	struct inode * inode;
 	off_t pos;
 	bool deny_write;
-}file;
+};
+struct lock file_lock;
+//lock_init(&file_lock);
 static void syscall_handler(struct intr_frame*);
 void halt(void);
 void exit(int status);
@@ -48,6 +50,7 @@ syscall_init (void)
   sema_init(&mutex, 1);
   sema_init(&wrt, 1);
   readcount = 0;
+  lock_init(&file_lock);
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
 }
 
@@ -70,8 +73,7 @@ syscall_handler(struct intr_frame* f UNUSED)
 		//exit((int)args[1]);
 		break;
 	case SYS_EXEC:                   /* Start another process. */
-		check_address(f->esp + WORD);
-	
+		check_address(f->esp + WORD);	
 		f->eax = exec((const char*) * (uint32_t*)(f->esp + WORD));
 		break;
 	case SYS_WAIT:                   /* Wait for a child process to die. */
@@ -156,7 +158,11 @@ void exit(int status) {
 	   idx++;
     }
     real_file_name[idx]='\0';	
-	
+	printf("PID : %d\n Parent : %p\n", thread_current()->tid, thread_current()->parent);
+			////////////////test code
+		//for (i = 0; i < n; i++) cout << "test code : " << b[i] << endl;
+
+		///////////////
 	printf("%s: exit(%d)\n", real_file_name, status);
 	cur->child_exit_status = status;
 	
@@ -166,8 +172,26 @@ void exit(int status) {
 			close(i);
 		}
 	}
-	thread_exit();
+	struct thread* temp_thread = NULL;
+	struct list_elem * temp_elem = NULL;
+	/*
+	for(temp_elem = list_begin(&thread_current()->child_thread); temp_elem != list_end(&thread_current()->child_thread); temp_elem = list_next(temp_elem)){
+	temp_thread = list_entry(temp_elem, struct thread, child_thread_elem);
+	if(temp_thread->child_exit_status == -1){
+	 process_wait(temp_thread->child_thread_elem->tid);
+	}
+}*/
+	/*
+	struct list_elem * e;
+	struct thread * th = thread_current();
+	for(e = list_begin(&th->child_thread); e != list_end(&th->child_thread); e = list_next(e)){
+		struct thread * thr = list_entry(e, struct thread, child_thread_elem);
+		if(thr->child_exit_status == -1){
+			process_wait(thr->tid);
+		}
+	}*/
 
+	thread_exit();
 }
 
 pid_t exec(const char* cmd_lines) {
@@ -179,25 +203,37 @@ pid_t exec(const char* cmd_lines) {
 		idx++;
 	}
 	real_file_name[idx]='\0';
+//	printf("======================\n");
 	file = filesys_open(real_file_name);
 	
 	if(file ==NULL)
 	{
+	printf("¿¿¿¿ ¿\n");
 		return -1;
 	}
+//	lock_acquire(&file_lock);
+//	printf("================%s\n", cmd_lines);
 	tid_t result = process_execute(cmd_lines);
+//	printf("IMHERHE\n\n");
+//	lock_release(&file_lock);
 	return (pid_t)result;
 }
 
 int wait(pid_t pid) {
-	return process_wait((tid_t)pid);
+	int a;
+//	lock_acquire(&file_lock);
+	a = process_wait((tid_t)pid);
+//	lock_release(&file_lock);
+	return a;
 }
 
 bool create(const char* file, unsigned initial_size){
 	if (file == NULL) exit(-1);
 	check_address(file);
-
-	return filesys_create(file, initial_size);
+//	lock_acquire(&file_lock);
+	bool boolean = filesys_create(file, initial_size);
+//	lock_release(&file_lock);
+	return boolean;
 }
 
 bool remove(const char* file){
@@ -212,35 +248,59 @@ bool remove(const char* file){
 //	file_name[i] = '\0';
 	
 //	free(file_name);
-	return filesys_remove(file);
+//	lock_acquire(&file_lock);
+	bool boolean = filesys_remove(file);
+//	lock_release(&file_lock);
+	return boolean;
+//	return filesys_remove(fi
 }
 
 int open(const char* file){
 	if(file == NULL) exit(-1);
 	check_address(file);
-	int i;
+	lock_acquire(&file_lock);
+//	sema_down(&wrt);
+	int i, ret= -1;
 	char * file_name;
 	file_name = file_name_parser(file);
 	struct file * opening_file = filesys_open(file);
-	if(opening_file == NULL) return -1;
-	else if (opening_file != NULL){
+	if(opening_file == NULL) {
+//		sema_up(&wrt);
+//		lock_release(&file_lock);
+		ret = -1;
+	}
+//	else if(strcmp(file, thread_name()) == 0){
+//		file_deny_write(opening_file);
+//	}
+	else{
+		//if (strcmp(thread_name(), file) == 0){
+		//	file_deny_write(opening_file);
+	//	}//
+	
 		for(i = 3; i < 128; i++){
+			if(strcmp(thread_name(), file_name) == 0){
+				file_deny_write(opening_file);
+			}
+
 			if(thread_current()->file_descriptor[i] == NULL){
 				thread_current()->file_descriptor[i] = opening_file;
-				// ¿¿ ¿¿¿¿ thread¿ ¿¿¿ ¿¿¿¿¿ ¿¿¿ ¿¿¿ 
-				// ¿¿ ¿¿¿ ¿¿¿ ¿¿.
-				if(!strcmp(file, thread_current()->name)){
-					file_deny_write(opening_file);
-				}
+//				if(!strcmp(file, thread_name())){
+//					file_deny_write(opening_file);
+//				}
 				
-				return i;
+//				lock_release(&file_lock);
+				ret = i;
+				break;
 			}
 		}	
 	}
-	else {
-		printf("Error breaks out at open file\n");
-		exit(-1);
-	}
+
+	lock_release(&file_lock);
+	return ret;
+//	else {
+//		printf("Error breaks out at open file\n");
+//		exit(-1);
+//	}
 
 }
 
@@ -249,21 +309,27 @@ int filesize(int fd){
 	int i;
 //	if(current_thread->file_descriptor[fd] == NULL) exit(-1);
 	fd_check(fd);
-	return (int)file_length(thread_current()->file_descriptor[fd]);
+//	lock_acquire(&file_lock);
+	i = (int)file_length(thread_current()->file_descriptor[fd]);
+//	lock_release(&file_lock);
+	return i;
 }
 
 int read(int fd, void* buffer, unsigned size){
 
-	int i=0, ret = -1;
+	int i=-1, ret = -1;
 	// READ & WRITED PROBLEM
+	/*
 	sema_down(&mutex);
 	readcount++;
 	if(readcount == 1)
 		sema_down(&wrt);
 	sema_up(&mutex);
+	*/
 	// MUTEX LOCK
 
 	check_address(buffer);
+	lock_acquire(&file_lock);
 //	struct thread * current_thread = thread_current();
 //	if(current_trhead -> file_descriptor[fd] == NULL) exit(-);
 //	fd_check(fd);
@@ -276,8 +342,12 @@ int read(int fd, void* buffer, unsigned size){
 	}
 	
 	else if(fd > 2)	{
-	//	fd_check(fd);
+//		fd_check(fd);
 		struct thread * cur_thread = thread_current();
+		if(thread_current()->file_descriptor[fd] == NULL) {
+		lock_release(&file_lock);
+		exit(-1);	
+		}
 	//	file_deny_write(cur_thread->file_descriptor[fd]);
 	//	if(cur_thread->file_descriptor[fd]->deny_write){
 	//		file_deny_write(cur_thread->file_descriptor[fd]);
@@ -293,44 +363,55 @@ int read(int fd, void* buffer, unsigned size){
 		i = -1;
 	//	exit(-1);
 	}
+	/*
 	sema_down(&mutex);
 	readcount--;
 	if(readcount == 0)
 		sema_up(&wrt);
 	sema_up(&mutex);
-
+	*/
+	lock_release(&file_lock);
 	return i;
 }
 
 int write(int fd, const void* buffer, unsigned size) {
-	sema_down(&wrt);
+//	sema_down(&wrt);
+//	if(fd != 1) fd_check(fd);
 	check_address(buffer);
+	lock_acquire(&file_lock);
 	// printf("write!!haha\n");
 //	struct thread * current_thread = thread_current();
 //	if(current_thread -> file_descriptor[fd] == NULL) exit(-1);
 //	fd_check(fd);
-	int ret;
+	int ret = -1;
 	if (fd == 1) {	
 		putbuf(buffer, size);
 		ret = size;
 	}
-	else if ( fd > 2){
-		fd_check(fd);
+	else if ( fd > 2 ){
+		if(thread_current()->file_descriptor[fd] == NULL){
+			lock_release(&file_lock);
+			exit(-1);
+		}
 		struct thread * cur_thread = thread_current();
+//		if(cur_thread->file_descriptor[fd] == NULL){
+//			lock_release(&file_lock);
+//			exit(-1);
+//		}
 		struct file * cur_file = cur_thread->file_descriptor[fd];
 		if(cur_file->deny_write){
 			file_deny_write(cur_file);
 		}
 	//	file_deny_write(cur_thread->file_descriptor[fd]);
-		ret = file_write(thread_current()->file_descriptor[fd], buffer, size);
+		ret = file_write(cur_file, buffer, size);
 	//	file_allow_write(cur_thread->file_descriptor[fd]);
 		
 	}
 	else{
 		ret = -1;
 	}
-	sema_up(&wrt);
-
+//	sema_up(&wrt);
+	lock_release(&file_lock);
 	return ret;
 }
 
@@ -339,12 +420,17 @@ void seek(int fd, unsigned position){
 //	if(current_thread->file_descriptor[fd] == NULL) exit(-1);
 
 	fd_check(fd);
-	return file_seek(thread_current()->file_descriptor[fd], position);
+//	lock_acquire(&file_lock);
+	file_seek(thread_current()->file_descriptor[fd], position);
+//	lock_release(&file_lock);
 }
 
 unsigned tell(int fd){
 	fd_check(fd);
-	return (unsigned)file_tell(thread_current()->file_descriptor[fd]);
+//	lock_acquire(&file_lock);
+	unsigned i=(unsigned)file_tell(thread_current()->file_descriptor[fd]);
+//	lock_release(&file_lock);
+	return i;
 }
 
 void close(int fd){
@@ -357,7 +443,9 @@ void close(int fd){
 	
 	if(cur_thread -> file_descriptor[fd] == NULL) exit(-1);
 	cur_thread->file_descriptor[fd] = NULL;
+//	lock_acquire(&file_lock);
 	file_close(fp);	
+//	lock_release(&file_lock);
 }
 
 void check_address(void* addr) 
@@ -395,7 +483,7 @@ char * file_name_parser(const char * file){
 	char *file_name;
 	for(i = 0; file[i] != ' ' && file[i] != '\0'; i++);
 	file_name = (char *)malloc(sizeof(char) * (i + 1));
-	strlcpy(file_name, file, i);
+	strlcpy(file_name, file, i+1);
 	file_name[i] = '\0';
 	return file_name;
 }

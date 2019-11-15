@@ -471,13 +471,16 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
+
   list_push_back (&all_list, &t->allelem);
 
 #ifdef USERPROG
 	int i;
-	for(i = 3; i < 128; i++){
+	for(i = 0; i < 128; i++){
 		t->file_descriptor[i] = NULL;
 	}
+	t->parent = running_thread();
+	sema_init(&t->exe_child, 0);
 	sema_init(&t->child_thread_lock, 0);
 	sema_init(&t->memory_preserve, 0);
 	list_init(&(t->child_thread));
