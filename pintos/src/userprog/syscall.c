@@ -186,6 +186,7 @@ pid_t exec(const char* cmd_lines) {
 		return -1;
 	}
 	tid_t result = process_execute(cmd_lines);
+	
 	return (pid_t)result;
 }
 
@@ -218,18 +219,35 @@ bool remove(const char* file){
 int open(const char* file){
 	if(file == NULL) exit(-1);
 	check_address(file);
-	int i;
+	
+	char real_file_name[128];
+
+	int idx=0, i;
 	char * file_name;
 	file_name = file_name_parser(file);
 	struct file * opening_file = filesys_open(file);
+	
+	struct thread* cur = thread_current();
+
 	if(opening_file == NULL) return -1;
 	else if (opening_file != NULL){
 		for(i = 3; i < 128; i++){
-			if(thread_current()->file_descriptor[i] == NULL){
-				thread_current()->file_descriptor[i] = opening_file;
+			if(cur->file_descriptor[i] == NULL){
+				// 
+				cur->file_descriptor[i] = opening_file;
 				// ¿¿ ¿¿¿¿ thread¿ ¿¿¿ ¿¿¿¿¿ ¿¿¿ ¿¿¿ 
-				// ¿¿ ¿¿¿ ¿¿¿ ¿¿.
-				if(!strcmp(file, thread_current()->name)){
+				// ¿¿ ¿¿¿ ¿¿¿ ¿¿
+				//printf("--- file_name : %s & %s\n",file, thread_current()->name);
+					
+				while((cur->name)[idx] != ' ' && (cur->name)[idx]!= '\0')
+				{  real_file_name[idx] = (cur->name)[idx];
+					 idx++;
+				}
+				real_file_name[idx]='\0';	
+				
+				if(!strcmp(file_name, real_file_name)){
+				//	printf("hihi");
+				//	printf("--TEST file name \n");
 					file_deny_write(opening_file);
 				}
 				
@@ -305,12 +323,21 @@ int read(int fd, void* buffer, unsigned size){
 int write(int fd, const void* buffer, unsigned size) {
 	sema_down(&wrt);
 	check_address(buffer);
-	// printf("write!!haha\n");
+	//printf("write!!haha---%d\n",fd);
 //	struct thread * current_thread = thread_current();
 //	if(current_thread -> file_descriptor[fd] == NULL) exit(-1);
 //	fd_check(fd);
 	int ret;
 	if (fd == 1) {	
+		//printf("kkk fd==1\n");
+		/*struct thread * cur_thread = thread_current();
+		printf("hihi");
+		struct file * cur_file = cur_thread->file_descriptor[fd];
+		printf("test fd>2 %d\n",cur_file->deny_write);
+		if(cur_file->deny_write){
+			printf("tt\n");
+			file_deny_write(cur_file);
+		}*/
 		putbuf(buffer, size);
 		ret = size;
 	}
@@ -318,6 +345,7 @@ int write(int fd, const void* buffer, unsigned size) {
 		fd_check(fd);
 		struct thread * cur_thread = thread_current();
 		struct file * cur_file = cur_thread->file_descriptor[fd];
+		//printf("test fd>2 \n");
 		if(cur_file->deny_write){
 			file_deny_write(cur_file);
 		}
@@ -325,6 +353,7 @@ int write(int fd, const void* buffer, unsigned size) {
 		ret = file_write(thread_current()->file_descriptor[fd], buffer, size);
 	//	file_allow_write(cur_thread->file_descriptor[fd]);
 		
+		//printf("----%d\n",ret);
 	}
 	else{
 		ret = -1;
@@ -395,7 +424,7 @@ char * file_name_parser(const char * file){
 	char *file_name;
 	for(i = 0; file[i] != ' ' && file[i] != '\0'; i++);
 	file_name = (char *)malloc(sizeof(char) * (i + 1));
-	strlcpy(file_name, file, i);
+	strlcpy(file_name, file, i+1);
 	file_name[i] = '\0';
 	return file_name;
 }
