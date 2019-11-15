@@ -36,7 +36,7 @@ process_execute (const char *file_name)
   command_name = ((char *)malloc(sizeof(char) * (i + 1)));
   strlcpy(command_name, file_name, i+1);
   command_name[i] = '\0';
-	printf("PID : %d\n", thread_current()->tid);
+//	printf("PID : %d\n", thread_current()->tid);
 // printf("%s\n", command_name);
   //printf("=====---%s\n",file_name);
   /* Make a copy of FILE_NAME.
@@ -51,7 +51,7 @@ process_execute (const char *file_name)
 		return -1;
 	}
   tid = thread_create (command_name, PRI_DEFAULT, start_process, fn_copy);
-  sema_down(&thread_current()->exe_child);
+//  sema_down(&thread_current()->exe_child);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   //printf("\n ---process_execute pid : %d---\n", tid);
@@ -60,9 +60,9 @@ process_execute (const char *file_name)
   struct thread * thr = NULL;
   for ( ele = list_begin(&thread_current()->child_thread); ele != list_end(&thread_current()->child_thread); ele = list_next(ele)){
   thr = list_entry(ele, struct thread, child_thread_elem);
-	printf("FUCKINGSHI\n");
+//	printf("FUCKINGSHI\n");
   if(thr->child_exit_status == -1){
-	printf("HIHIHIHIHIHI\n");
+//	printf("HIHIHIHIHIHI\n");
 //	printf("return process waiting\n");
 	return process_wait(tid);
   }
@@ -200,12 +200,12 @@ start_process (void *file_name_)
   // @@@@
   /* If load failed, quit. */
   palloc_free_page (file_name);
-printf("PIDPIDUP : %d\n", thread_current()->tid);
+//printf("PIDPIDUP : %d\n", thread_current()->tid);
   sema_up(&thread_current()->parent->exe_child);
-printf("PIDPIDDOWN: %d\n", thread_current()->tid);
+//printf("PIDPIDDOWN: %d\n", thread_current()->tid);
   if (!success) 
-//    thread_exit ();
-	exit(-1);
+    thread_exit ();
+//	exit(-1);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in

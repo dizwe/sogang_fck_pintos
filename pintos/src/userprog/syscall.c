@@ -158,7 +158,7 @@ void exit(int status) {
 	   idx++;
     }
     real_file_name[idx]='\0';	
-	printf("PID : %d\n Parent : %p\n", thread_current()->tid, thread_current()->parent);
+//	printf("PID : %d\n Parent : %p\n", thread_current()->tid, thread_current()->parent);
 			////////////////test code
 		//for (i = 0; i < n; i++) cout << "test code : " << b[i] << endl;
 
@@ -208,7 +208,7 @@ pid_t exec(const char* cmd_lines) {
 	
 	if(file ==NULL)
 	{
-	printf("¿¿¿¿ ¿\n");
+//	printf("¿¿¿¿ ¿\n");
 		return -1;
 	}
 //	lock_acquire(&file_lock);
@@ -345,8 +345,8 @@ int read(int fd, void* buffer, unsigned size){
 //		fd_check(fd);
 		struct thread * cur_thread = thread_current();
 		if(thread_current()->file_descriptor[fd] == NULL) {
-		lock_release(&file_lock);
-		exit(-1);	
+			lock_release(&file_lock);
+			exit(-1);	
 		}
 	//	file_deny_write(cur_thread->file_descriptor[fd]);
 	//	if(cur_thread->file_descriptor[fd]->deny_write){
