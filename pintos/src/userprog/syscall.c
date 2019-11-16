@@ -191,6 +191,7 @@ void exit(int status) {
 }
 
 pid_t exec(const char* cmd_lines) {
+	//printf("exec cmd_lines : %s\n",cmd_lines);
 	struct file *file = NULL;
 	int idx = 0;
 	char real_file_name[128];
@@ -207,9 +208,11 @@ pid_t exec(const char* cmd_lines) {
 		return -1;
 	}
 //	lock_acquire(&file_lock);
-//	printf("================%s\n", cmd_lines);
-	tid_t result = process_execute(cmd_lines);
+	//printf("================%s\n", cmd_lines);
 //	printf("IMHERHE\n\n");
+	tid_t result = process_execute(cmd_lines);
+	//printf("%d",result);
+	//tid_t result = process_execute(real_file_name);
 //	lock_release(&file_lock);
 	return (pid_t)result;
 }
@@ -218,11 +221,13 @@ int wait(pid_t pid) {
 	int a;
 //	lock_acquire(&file_lock);
 	a = process_wait((tid_t)pid);
-//	lock_release(&file_lock);
+	//printf("---- wait,pid :%d,%d\n",a,pid);
+	//	lock_release(&file_lock);
 	return a;
 }
 
 bool create(const char* file, unsigned initial_size){
+	//printf("create!!!\n");
 	if (file == NULL) exit(-1);
 	check_address(file);
 //	lock_acquire(&file_lock);
@@ -232,6 +237,7 @@ bool create(const char* file, unsigned initial_size){
 }
 
 bool remove(const char* file){
+	//printf("remove!!\n");
 	if(file == NULL) exit ( -1);
 	check_address(file);
 	
@@ -242,6 +248,7 @@ bool remove(const char* file){
 }
 
 int open(const char* file){
+	//printf("open!!!\n");
 	if(file == NULL) exit(-1);
 	check_address(file);
 	lock_acquire(&file_lock);
@@ -309,6 +316,7 @@ int read(int fd, void* buffer, unsigned size){
 	
 	else if(fd > 2)	{
 //		fd_check(fd);
+		//printf("read!!\n");
 		struct thread * cur_thread = thread_current();
 		if(thread_current()->file_descriptor[fd] == NULL) {
 			lock_release(&file_lock);
@@ -355,6 +363,7 @@ int write(int fd, const void* buffer, unsigned size) {
 		ret = size;
 	}
 	else if ( fd > 2 ){
+		//printf("write!\n");
 		if(thread_current()->file_descriptor[fd] == NULL){
 			lock_release(&file_lock);
 			exit(-1);
@@ -406,7 +415,7 @@ void close(int fd){
 	struct file * fp = cur_thread->file_descriptor[fd];
 //	file_allow_write(fp);
 // 	file_close(thread_current()->file_descriptor[fd]);
-	
+	//printf("close!!\n");
 	if(cur_thread -> file_descriptor[fd] == NULL) exit(-1);
 	cur_thread->file_descriptor[fd] = NULL;
 //	lock_acquire(&file_lock);
@@ -416,6 +425,7 @@ void close(int fd){
 
 void check_address(void* addr) 
 {
+//	printf("check_address!!\n");
 	if (!is_user_vaddr(addr)) 
 	{
 		exit(-1);
@@ -455,6 +465,7 @@ char * file_name_parser(const char * file){
 }
 
 void fd_check(int fd){
+	//printf("fd_check!!\n");
 	if(thread_current()->file_descriptor[fd] == NULL) exit(-1);
 	return;
 }
