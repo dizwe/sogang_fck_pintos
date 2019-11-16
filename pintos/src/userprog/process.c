@@ -52,6 +52,8 @@ process_execute (const char *file_name)
 	}
   tid = thread_create (command_name, PRI_DEFAULT, start_process, fn_copy);
   free(command_name);
+  // NOtify that this thread is executing 
+  // If it is parent It should wait parent!!
   sema_down(&thread_current()->exe_child);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
@@ -195,7 +197,7 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
   success = load (real_file_name, &if_.eip, &if_.esp);
-//  free(real_file_name);
+  // If loads Ends, It means all of the child are exited, so make parent executable
   sema_up(&thread_current()->parent->exe_child);	
   // !!!!
   if(success){
