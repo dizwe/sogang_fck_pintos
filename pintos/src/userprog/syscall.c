@@ -163,13 +163,13 @@ void exit(int status) {
 	
 	struct thread * current_thread = thread_current();
 	for (i = 3; i < 128; i++){
-//		if(current_thread->file_descriptor[i] != NULL){
+		if(current_thread->file_descriptor[i] != NULL){
 			close(i);
-//		}
+		}
 	}
 	struct thread* temp_thread = NULL;
 	struct list_elem * temp_elem = NULL;
-	
+
 	for(temp_elem = list_begin(&thread_current()->child_thread); temp_elem != list_end(&thread_current()->child_thread); temp_elem = list_next(temp_elem)){
 	temp_thread = list_entry(temp_elem, struct thread, child_thread_elem);
 //	if(temp_thread->child_exit_status == -1){
