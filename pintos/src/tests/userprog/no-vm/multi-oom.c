@@ -118,14 +118,12 @@ main (int argc, char *argv[])
       consume_some_resources_and_die (n);
       NOT_REACHED ();
     }
-//	printf("stemp 11111111111111\n");
 
   int howmany = is_at_root ? EXPECTED_REPETITIONS : 1;
   int i, expected_depth = -1;
-//	printf("EXPECTED DEPTH\n");
+
   for (i = 0; i < howmany; i++)
     {
-	printf("i is :::: %d\n", i);
       pid_t child_pid;
 
       /* Spawn a child that will be abnormally terminated.
@@ -133,7 +131,6 @@ main (int argc, char *argv[])
          spawned at a certain depth. */
       if (n > EXPECTED_DEPTH_TO_PASS/2)
         {
-		printf("Im in\n");
           child_pid = spawn_child (n + 1, CRASH);
           if (child_pid != -1)
             {
@@ -145,11 +142,9 @@ main (int argc, char *argv[])
         }
 
       /* Now spawn the child that will recurse. */
-	printf("Child pid make\n");
       child_pid = spawn_child (n + 1, RECURSE);
-	printf("spawn_child\n");
+
       /* If maximum depth is reached, return result. */
-	printf("child_pid : %d\n", child_pid);
       if (child_pid == -1)
         return n;
 
@@ -168,7 +163,6 @@ main (int argc, char *argv[])
               i, howmany, expected_depth, reached_depth);
       ASSERT (expected_depth == reached_depth);
     }
-	printf("STEP 2 \n");
 
   consume_some_resources ();
 
@@ -180,7 +174,6 @@ main (int argc, char *argv[])
       msg ("end");
     }
 
-	printf("STEP 3 \n");
   return expected_depth;
 }
 // vim: sw=2
