@@ -85,67 +85,94 @@ process_execute (const char *file_name)
 
 // !!!!
 void esp_stack(char *file_name, void **esp){
+	char ** argv;
+	char ** arg_addr;
+	int argc = 0;
+int data_stack_len=0;
+int i;
+int word_align;
+char temp[128];
+char *one_arg;
+char *next_ptr;
+int blanking = 0;
 
+for(i=0; i<(int)strlen(file_name); i++){
+	// 전체 argument 개수구하기 for malloc
+	if(file_name[i]==' '&&file_name[i]!='\0' && blanking==0&&i!=(int)strlen(file_name)-1){
+		argc +=1;
+		blanking = 1;
+	}else{
+		blanking = 0;
+	}
+}
+// 1. arg 개수 구하기
+// 파일이름 변수 변수이면 띄어쓰기 두개, 변수 두개만 나오므로 끝에 더하
+argc +=1;
 
-	  char ** argv;
-	    int argc;
-		  int total_len;
-		    char stored_file_name[256];
-			  char *token;
-			    char *last;
-				  int i;
-				    int len;
-					  
-					  strlcpy(stored_file_name, file_name, strlen(file_name) + 1);
-					    token = strtok_r(stored_file_name, " ", &last);
-						  argc = 0;
-						    /* calculate argc */
-						    while (token != NULL) {
-								    argc += 1;
-									    token = strtok_r(NULL, " ", &last);
-										  }
-							  argv = (char **)malloc(sizeof(char *) * argc);
-							    /* store argv */
-							    strlcpy(stored_file_name, file_name, strlen(file_name) + 1);
-								  for (i = 0, token = strtok_r(stored_file_name, " ", &last); i < argc; i++, token = strtok_r(NULL, " ", &last)) {
-									      len = strlen(token);
-										      argv[i] = token;
+// 2. arg 변수별로 자르기 
+argv = (char **) malloc(sizeof(char *) * argc);
+arg_addr = (char **) malloc(sizeof(char *) * argc);
+// 원하는 길이만큼 copy
+strlcpy(temp, file_name, strlen(file_name) + 1);
+one_arg = strtok_r(temp, " ",&next_ptr);
+for(i=0; i< argc;i++){
+	// ""단위로 자르고 next_ptr로 이
+	argv[i] = one_arg;
+	one_arg = strtok_r(NULL, " ", &next_ptr);
+}
 
-											    }
+//printf("\n--%d------%a  --- %s",argc,argv[1],file_name);
+// 여기까지 OK
+//3. 자른거 주소값 집어넣기(거꾸로 집어넣어야 한다) 
+for(i = argc-1; i>=0; i--){
+	*esp -= strlen(argv[i]) +1;
+	data_stack_len = data_stack_len + strlen(argv[i])+ 1;
+	//printf("\n---%s---\n",argv[i]);
+	// 복사하기
+	strlcpy(*esp, argv[i], strlen(argv[i]) + 1);
+	arg_addr[i] = *esp;
+}
 
-								    /* push argv[argc-1] ~ argv[0] */
-								    total_len = 0;
-									  for (i = argc - 1; 0 <= i; i --) {
-										      len = strlen(argv[i]);
-											      *esp -= len + 1;
-												      total_len += len + 1;
-													      strlcpy(*esp, argv[i], len + 1);
-														      argv[i] = *esp;
-															    }
-									    /* push word align */
-									    *esp -= total_len % 4 != 0 ? 4 - (total_len % 4) : 0;
-										  /* push NULL */
-										  *esp -= 4;
-										    **(uint32_t **)esp = 0;
-											  /* push address of argv[argc-1] ~ argv[0] */
-											  for (i = argc - 1; 0 <= i; i--) {
-												      *esp -= 4;
-													      **(uint32_t **)esp = argv[i];
-														    }
-											    /* push address of argv */
-											    *esp -= 4;
-												  **(uint32_t **)esp = *esp + 4;
+//4. WORD ALIGN 계산하기
+if(data_stack_len%4!=0){
+	word_align = 4-(data_stack_len %4);
+}else{
+	word_align = 0;
+}
+*esp = *esp - word_align;
 
-												    /* push argc */
-												    *esp -= 4;
-													  **(uint32_t **)esp = argc;
-													    
-													    /* push return address */
-													    *esp -= 4;
-														  **(uint32_t **)esp = 0;
+//5. NULL 집어넣기
+*esp -=4;
+// 주소값을 통째로 집어넣는거니까
+**(uint32_t **) esp = 0;
+// 6. 그 주소값 집어넣기
+for(i = argc-1; i>=0; i--){
+	*esp = *esp-4;
+	// 주소값을 통째로 집어넣는 거니까
+	**(uint32_t **) esp = arg_addr[i];
+}
 
-															  free(argv);
-//
+//printf("%p --- %p", arg_addr[0], arg_addr[1]);
+
+// 7. argv 주소 집어넣기
+*esp -= 4;
+**(uint32_t **)esp = *esp + 4;
+//printf("esp : %p",esp);
+// 8. argc 집어넣기
+*esp = *esp -4;
+**(uint32_t **)esp = argc;
+
+free(argv);
+free(arg_addr);
+
+// 9. return address 넣기
+*esp = *esp-4;
+**(uint32_t **)esp = 0;
+//offset, buffer, size, ascii
+//hex_dump(*esp,*esp,100,1);
+//free(argv);
+//free(ard_addr);
+//free(temp);
 }
 // @@@
 
