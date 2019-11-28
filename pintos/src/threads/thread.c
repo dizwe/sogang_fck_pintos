@@ -141,10 +141,11 @@ thread_tick (void)
   if (++thread_ticks >= TIME_SLICE)
     intr_yield_on_return ();
 
-  thread_wake_up();
+//  thread_wake_up();
 
-  if(thread_prior_aging == true)
-    thread_aging();
+//  if(thread_prior_aging == true)
+//    thread_aging();
+
 }
 
 /* Prints thread statistics. */
@@ -217,6 +218,13 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
+  // ####
+    if(!list_empty(&ready_list)){
+      if(thread_get_priority() < priority){
+	    thread_yield();
+	}  
+    }
+  // $$$$
   return tid;
 }
 
@@ -253,7 +261,8 @@ thread_unblock (struct thread *t)
 
   old_level = intr_disable ();
   ASSERT (t->status == THREAD_BLOCKED);
-  list_push_back (&ready_list, &t->elem);
+ // list_push_back (&ready_list, &t->elem);
+  list_insert_ordered (&ready_list, &t->elem, thread_priority_comp, NULL);
   t->status = THREAD_READY;
   intr_set_level (old_level);
 }
@@ -324,7 +333,8 @@ thread_yield (void)
 
   old_level = intr_disable ();
   if (cur != idle_thread) 
-    list_push_back (&ready_list, &cur->elem);
+//    list_push_back (&ready_list, &cur->elem);
+  list_insert_ordered(&ready_list, &cur->elem, thread_priority_comp, NULL);
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -352,6 +362,11 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  if(!list_empty(&ready_list)){
+    struct list_elem * temp = list_front(&ready_list);
+    if(new_priority < list_entry(temp, struct thread, elem)->priority)
+        thread_yield();
+  }
 }
 
 /* Returns the current thread's priority. */
@@ -363,17 +378,24 @@ thread_get_priority (void)
 
 /* Sets the current thread's nice value to NICE. */
 void
-thread_set_nice (int nice UNUSED) 
+thread_set_nice (int new_nice) 
 {
-  /* Not yet implemented. */
+  struct thread * cur_thread = thread_current();
+  struct list_elem * t_elem = list_front(&ready_list);
+  cur_thread->nice = new_nice;
+  cur_thread->priority = PRI_MAX - (cur_thread / 4) - (new_nice * 2);
+
+  if(cur_thread->priority < list_entry(t_elem, struct thread, elem)->priority){
+    thread_yield();
+  }
+//  thread_current()->nice = new_nice;
 }
 
 /* Returns the current thread's nice value. */
 int
 thread_get_nice (void) 
 {
-  /* Not yet implemented. */
-  return 0;
+  return thread_current()->nice;
 }
 
 /* Returns 100 times the system load average. */
@@ -477,7 +499,10 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-
+/* Project 3 */
+  t->nice = 0;
+  t->wake_up_time = 0;
+/* 		*/
   list_push_back (&all_list, &t->allelem);
 
 #ifdef USERPROG
@@ -609,3 +634,13 @@ allocate_tid (void)
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
+
+bool thread_priority_comp(const struct list_elem *a, 
+				const struct list_elem *b, void *aux){
+  return list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority; 
+}
+
+void thread_wake_up(){;}
+void thread_aging(){;}
+
+

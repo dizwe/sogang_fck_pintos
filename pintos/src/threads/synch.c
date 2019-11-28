@@ -68,7 +68,8 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-      list_push_back (&sema->waiters, &thread_current ()->elem);
+	list_push_back(&sema->waiters, &thread_current()->elem);
+     /* list_insert_ordered (&sema->waiters, &thread_current ()->elem, thread_priority_comp, NULL);*/
       thread_block ();
     }
   sema->value--;
@@ -109,13 +110,35 @@ void
 sema_up (struct semaphore *sema) 
 {
   enum intr_level old_level;
-
+  struct thread * t_thread,* max_thread;
+  struct list_elem * t_elem,* max_elem;
   ASSERT (sema != NULL);
 
+//  max_thread->priority = -1;
+
   old_level = intr_disable ();
-  if (!list_empty (&sema->waiters)) 
+  if (!list_empty (&sema->waiters)){
+//    max_thread = list_begin(&sema->waiters);
+    max_elem = list_begin(&sema->waiters);
+    max_thread = list_entry(max_elem, struct thread, elem);
+    
+//    t_elem = list_next(max_elem); 
+    for(t_elem = list_begin(&sema->waiters); t_elem != list_end(&sema->waiters); t_elem = list_next(t_elem)){
+        t_thread = list_entry(t_elem, struct thread, elem);
+	if(t_thread->priority > max_thread->priority){
+	  max_thread = t_thread;
+	  max_elem = t_elem;
+	}
+  }
+   // thread_unblock(max_thread);
+    list_remove(max_elem);
+    thread_unblock(max_thread);
+    
+   /*
     thread_unblock (list_entry (list_pop_front (&sema->waiters),
-                                struct thread, elem));
+                                struct thread, elem));*/
+
+  }
   sema->value++;
   intr_set_level (old_level);
 }
