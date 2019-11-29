@@ -204,9 +204,9 @@ timer_interrupt (struct intr_frame *args UNUSED)
   }
   //!!!priority aging을 하는거라면
   if(thread_prior_aging){
-   if(thread_currnet() != idle_thread) {
+ //  if(thread_currnet() != idle_thread) {
      thread_current()->recent_cpu =  thread_current()->recent_cpu + (1<<14);
-  } 
+  //} 
     // 41p recent_cpu value of all thread is updated in every second(1sec=TIMER_FREQ)
     if (timer_ticks() % TIMER_FREQ == 0){
       update_load_avg();
