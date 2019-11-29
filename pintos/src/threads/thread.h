@@ -9,6 +9,7 @@
 #ifndef USERPROG
 /* Project #3. */
 extern bool thread_prior_aging;
+extern bool thread_mlfqs;
 #endif
 /* States in a thread's life cycle. */
 enum thread_status

@@ -203,7 +203,7 @@ timer_interrupt (struct intr_frame *args UNUSED)
     }
   }
   //!!!priority aging을 하는거라면
-  if(thread_prior_aging){
+  if(thread_prior_aging||thread_mlfqs){
  //  if(thread_currnet() != idle_thread) {
      thread_current()->recent_cpu =  thread_current()->recent_cpu + (1<<14);
   //} 
