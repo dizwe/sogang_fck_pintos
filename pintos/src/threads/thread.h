@@ -95,7 +95,8 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
     int wake_up_time;
-    int nice; 
+    int recent_cpu; //!!! estimate of the CPU time the thread has used recently. @@@
+    int nice; // !!!positive nice valu lower the priority@@@
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
 #ifdef USERPROG

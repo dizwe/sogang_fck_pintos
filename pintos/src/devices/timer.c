@@ -194,18 +194,30 @@ timer_interrupt (struct intr_frame *args UNUSED)
  /* 그냥 for 문에 temp_elem = list_next(temp_elem)을 하니까 Kernel PANIC이 떳다. */ 
   for(temp_elem = list_begin(&sleep_list); temp_elem != list_end(&sleep_list);){
   temp_thread = list_entry(temp_elem, struct thread, elem);
-  
-  if(temp_thread->wake_up_time <= ticks){
-    temp_elem = list_remove(temp_elem);
-    thread_unblock(temp_thread);
+    if(temp_thread->wake_up_time <= ticks){
+      temp_elem = list_remove(temp_elem);
+      thread_unblock(temp_thread);
+    }
+    else{
+      temp_elem = list_next(temp_elem);
+    }
   }
-  else{
-    temp_elem = list_next(temp_elem);
+  //!!!priority aging을 하는거라면
+  if(thread_priority_aging){
+    // 41p recent_cpu value of all thread is updated in every second(1sec=TIMER_FREQ)
+    if (timer_ticks() % TIMER_FREQ == 0){
+      update_load_avg();
+      increase_recent_cpu();
+    }
+    // 38p Every 4 tick, priorites of all thread in the system are recalculated
+    if (timer_ticks() % 4 == 0) 
+      update_priority_with_aging();
   }
- 
-}
+  //@@@
   thread_tick ();
 }
+
+
 
 /* Returns true if LOOPS iterations waits for more than one timer
    tick, otherwise false. */

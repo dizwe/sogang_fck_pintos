@@ -20,6 +20,9 @@
    of thread.h for details. */
 #define THREAD_MAGIC 0xcd6abf4b
 
+//!!!
+static int load_avg = 0;
+//@@@
 /* List of processes in THREAD_READY state, that is, processes
    that are ready to run but not actually running. */
 static struct list ready_list;
@@ -87,6 +90,7 @@ static tid_t allocate_tid (void);
 
    It is not safe to call thread_current() until this function
    finishes. */
+// 이건 처음 만드는것(init_thread와 비교)
 void
 thread_init (void) 
 {
@@ -101,6 +105,8 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+  initial_thread->nice = 0; //!!!1129@@@
+  initial_thread->recent_cpu = 0; //!!!1129@@@
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -218,7 +224,7 @@ thread_create (const char *name, int priority,
   /* Add to run queue. */
   thread_unblock (t);
 
-  // ####
+  // #### 현재 priority가 낮으면 thread를 멈춰~!
     if(!list_empty(&ready_list)){
       if(thread_get_priority() < priority){
 	    thread_yield();
@@ -332,9 +338,13 @@ thread_yield (void)
   ASSERT (!intr_context ());
 
   old_level = intr_disable ();
+  
+  // 함수 추가함.
   if (cur != idle_thread) 
-//    list_push_back (&ready_list, &cur->elem);
-  list_insert_ordered(&ready_list, &cur->elem, thread_priority_comp, NULL);
+    // list_push_back (&ready_list, &cur->elem);
+    // priority를 compare 해서 집어넣는다.
+    list_insert_ordered(&ready_list, &cur->elem, thread_priority_comp, NULL);
+
   cur->status = THREAD_READY;
   schedule ();
   intr_set_level (old_level);
@@ -362,6 +372,7 @@ void
 thread_set_priority (int new_priority) 
 {
   thread_current ()->priority = new_priority;
+  // 새 priority 확인
   if(!list_empty(&ready_list)){
     struct list_elem * temp = list_front(&ready_list);
     if(new_priority < list_entry(temp, struct thread, elem)->priority)
@@ -383,12 +394,14 @@ thread_set_nice (int new_nice)
   struct thread * cur_thread = thread_current();
   struct list_elem * t_elem = list_front(&ready_list);
   cur_thread->nice = new_nice;
-  cur_thread->priority = PRI_MAX - (cur_thread / 4) - (new_nice * 2);
+  //!!! 1129 recent_cpu로 수정 @@@
+  cur_thread->priority = PRI_MAX - (recent_cpu/ 4) - (new_nice * 2);
 
   if(cur_thread->priority < list_entry(t_elem, struct thread, elem)->priority){
+    // If the running thread no longer has the highest priority, yields
     thread_yield();
   }
-//  thread_current()->nice = new_nice;
+ thread_current()->nice = new_nice;
 }
 
 /* Returns the current thread's nice value. */
@@ -403,6 +416,7 @@ int
 thread_get_load_avg (void) 
 {
   /* Not yet implemented. */
+
   return 0;
 }
 
@@ -410,7 +424,8 @@ thread_get_load_avg (void)
 int
 thread_get_recent_cpu (void) 
 {
-  /* Not yet implemented. */
+  // CPU time이 높을수록 더 weighted 될것.
+  // 
   return 0;
 }
 
@@ -500,7 +515,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->priority = priority;
   t->magic = THREAD_MAGIC;
 /* Project 3 */
-  t->nice = 0;
+//!!! inherit If not, the thread starts with a nice value inherited from their parent thread @@@//
+  t->nice = running_thread()-> nice; 
+  t->recent_cpu = running_thread()-> recent_cpu; 
   t->wake_up_time = 0;
 /* 		*/
   list_push_back (&all_list, &t->allelem);
@@ -630,7 +647,56 @@ allocate_tid (void)
 
   return tid;
 }
+
+//!!!
+void update_load_avg(){
+  // (59/60) * load_avg + (1/60) * ready_threads 계산
+  // ready_list 길이 구하면 개수 나오겠지?
+  int ready_threads = list_size(&ready_list);
+  // !!!! ready인것만 계산(Check) ???
+  if (thread_current()!=idle_thread) ready_threads += 1;
+  // if (thread_current()->status == THREAD_READY) ready_threads += 1;
+  // @@@
+
+  // 값이 잘려나가는 것을 방지하기 위해 수식을 간편화
+  // !!! 후에 float 계산하는거 만들어야 한다.. shit...@@@
+  load_avg = (59/60) * load_avg + (1/60) * ready_threads;
+}
+
+void increase_recent_cpu(){
+  struct thread* t;
+  struct list_elem* t_elem;
+  for (t_elem = list_begin(&all_list); t_elem != list_end(&all_list); t_elem = list_next(t_elem)) {
+    t = list_entry(t_elem, struct thread, allelem);
+    if (t != idle_thread) {
+      t->recent_cpu = (2*load_avg) / (2*load_avg+1) *t->recent_cpu + t->nice;
+    }
+  }
+}
+//@@@
 
+// !!! priority aging 계산
+void update_priority_with_aging(){
+  struct thread* t;
+  struct list_elem* t_elem;
+  
+  // loop 돌면서 priority update
+  for (t_elem = list_begin(&all_list); t_elem!= list_end(&all_list); t_elem= list_next(e)) {
+    t = list_entry(t_elem, struct thread, allelem);
+    
+    // !!! 후에 float 계산하는거 만들어야 한다.. shit...@@@//
+    t->priority = PRI_MAX - (t->recent_cpu / 4) - (t->nice * 2);
+    
+    // !!! WJHJY
+    if (t->priority > PRI_MAX) t->priority = PRI_MAX;
+    if (t->priority < PRI_MIN) t->priority = PRI_MIN;
+  }
+
+  // !!! 추 가 해 야 함
+  // @@@
+}
+// @@@
+
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
 uint32_t thread_stack_ofs = offsetof (struct thread, stack);
