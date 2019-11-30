@@ -59,6 +59,7 @@ static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
 #ifndef USERPROG
 bool thread_prior_aging;
+bool thread_mlfqs;
 #endif
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
@@ -371,7 +372,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  if(thread_mlfqs) return;
+  if(thread_mlfqs) return; //!!! mlfs일떄는 queue 한개는 priorityqueue가 아니다!
   thread_current ()->priority = new_priority;
   // 새 priority 확인
   if(!list_empty(&ready_list)){
