@@ -99,6 +99,12 @@ struct thread
     int nice; // !!!positive nice valu lower the priority@@@
     /* Shared between thread.c and synch.c. */
     struct list_elem elem;              /* List element. */
+/* PRJ 3 NEW */
+    int flag_priority;
+    int original_priority;
+    struct lock* lock_already;
+    struct list lock_list;
+/* PRJ 3NEW */
 #ifdef USERPROG
     /* Owned by userprog/process.c. */
     uint32_t *pagedir;                  /* Page directory. */

@@ -371,6 +371,7 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
+  if(thread_mlfqs) return;
   thread_current ()->priority = new_priority;
   // 새 priority 확인
   if(!list_empty(&ready_list)){
@@ -522,7 +523,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->wake_up_time = 0;
 /* 		*/
   list_push_back (&all_list, &t->allelem);
-
+/* NEW */
+  t->original_priority = 0;
+  t->flag_priority = 0;
+//  lock_init(&t->lock_already);
+  t->lock_already = NULL;
+  list_init(&(t->lock_list));
+/* NEW */
 #ifdef USERPROG
 	int i;
 	for(i = 0; i < 128; i++){
