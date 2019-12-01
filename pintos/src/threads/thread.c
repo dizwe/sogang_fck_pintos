@@ -272,6 +272,10 @@ thread_unblock (struct thread *t)
  // list_push_back (&ready_list, &t->elem);
   list_insert_ordered (&ready_list, &t->elem, thread_priority_comp, NULL);
   t->status = THREAD_READY;
+/* Project 3 New : */
+  if(thread_current() != idle_thread && thread_current() -> priority < t->priority) 
+    thread_yield();
+/* Project 3 New : */
   intr_set_level (old_level);
 }
 
@@ -373,12 +377,17 @@ thread_foreach (thread_action_func *func, void *aux)
 void
 thread_set_priority (int new_priority) 
 {
-  if(thread_mlfqs) return; //!!! mlfs일떄는 queue 한개는 priorityqueue가 아니다!
-  thread_current ()->priority = new_priority;
+//  if(thread_mlfqs) return; //!!! mlfs일떄는 queue 한개는 priorityqueue가 아니다!
+  struct thread * cur_thread = thread_current();
+
+  if(cur_thread -> priority == cur_thread -> original_priority){
+    cur_thread -> priority = new_priority;
+  }
+  cur_thread -> original_priority = new_priority;
   // 새 priority 확인
   if(!list_empty(&ready_list)){
     struct list_elem * temp = list_front(&ready_list);
-    if(new_priority < list_entry(temp, struct thread, elem)->priority)
+    if(temp != NULL && new_priority < list_entry(temp, struct thread, elem)->priority)
         thread_yield();
   }
 }
@@ -398,7 +407,7 @@ thread_set_nice (int new_nice)
   struct list_elem * t_elem = list_front(&ready_list);
   cur_thread->nice = new_nice;
   //!!! 1129 recent_cpu로 수정 @@@
-  cur_thread->priority = (PRI_MAX<<14 - (thread_get_recent_cpu() / 4) - ((new_nice<<14) * 2))>>14;
+  cur_thread->priority = ((PRI_MAX<<14) - (thread_get_recent_cpu() / 4) - ((new_nice<<14) * 2))>>14;
   cur_thread->priority = (cur_thread->priority > PRI_MAX) ? PRI_MAX : ((cur_thread->priority < PRI_MIN) ? PRI_MIN : cur_thread->priority);
   if(cur_thread->priority < list_entry(t_elem, struct thread, elem)->priority){
     // If the running thread no longer has the highest priority, yields
@@ -529,8 +538,8 @@ init_thread (struct thread *t, const char *name, int priority)
 /* 		*/
   list_push_back (&all_list, &t->allelem);
 /* NEW */
-  t->original_priority = 0;
-  t->flag_priority = 0;
+  t->original_priority = priority;
+  t->flag_priority = priority;
 //  lock_init(&t->lock_already);
   t->lock_already = NULL;
   list_init(&(t->lock_list));
@@ -593,7 +602,7 @@ next_thread_to_run (void)
    added at the end of the function.
 
    After this function and its caller returns, the thread switch
-   is complete. */
+   is complete. */`
 void
 thread_schedule_tail (struct thread *prev)
 {
@@ -680,7 +689,7 @@ void update_load_avg(){
   // load_avg = ((59<<14)/60) * load_avg + (((1<<14)/60) * ready_threads);
 
   // load_avg = ((59<<14)/60) * load_avg + (((1<<14)/60) * ready_threads);
-  load_avg = ((59*load_avg) + ready_threads *(1<<14))/60;
+  load_avg = ((59*load_avg) + (ready_threads<<14))/60;
   // printf("%d$$",load_avg);
 }
 
@@ -716,7 +725,7 @@ void update_priority_with_aging(){
   }
 
   // !!! 추 가 해 야 함
-  // @@@
+  //@@@
 }
 // @@@
 
@@ -729,7 +738,61 @@ bool thread_priority_comp(const struct list_elem *a,
   return list_entry(a, struct thread, elem)->priority > list_entry(b, struct thread, elem)->priority; 
 }
 
-void thread_wake_up(){;}
-void thread_aging(){;}
+int lock_donation(struct lock * lock){
+    struct thread * cur_thread = thread_current();
+    struct thread * cur_holder = lock->holder;
+    struct lock * cur_lock = lock;
 
+    if(thread_mlfqs || (cur_holder == NULL) || (cur_thread->priority <= cur_holder->priority)) return 4;
+    
+    if(cur_holder->flag_priority == false){
+      cur_holder -> priority = cur_thread -> priority;
+      cur_holder -> original_priority = cur_thread ->priority;
+    } 
+    else{
+      cur_holder->priority = cur_thread->priority;
+    }
 
+    if(cur_holder->status == THREAD_READY){
+      list_remove(&cur_holder->elem);
+      list_insert_ordered(&ready_list, &cur_holder->elem, thread_priority_comp, NULL);
+    }
+    else if((cur_holder->status == THREAD_RUNNING) && !list_empty(&ready_list)){
+    /* ready_list에 있는 thread 중 제일 앞에 있는 thread는 우선순위가 가장 높은 thread이다. 그 thread가 NULL이 아니고 현재 thread의 priority보다 크면 thread_yield를 실행한다 */
+      struct thread * next_thread = list_entry(list_begin(&ready_list), struct thread, elem);
+      if((next_thread != NULL) && next_thread -> priority > cur_thread->priority){
+        thread_yield();
+      }
+    }
+    
+    if(lock->lock_priority < cur_thread -> priority)
+      lock->lock_priority = cur_thread->priority;
+  
+    cur_lock = cur_holder -> lock_already;
+    if((cur_holder->status == THREAD_BLOCKED) && cur_lock != NULL) 
+      lock_donation(cur_lock);
+}
+
+void lock_release_list_insert_ordered(struct thread * cur){
+     if(cur->status == THREAD_READY){
+      list_remove(&cur->elem);
+      list_insert_ordered(&ready_list, &cur->elem, thread_priority_comp, NULL);
+      
+    }
+    else if(cur->status == THREAD_RUNNING && !list_empty(&ready_list)){
+      struct thread * temp = list_entry(list_begin(&ready_list), struct thread, elem);
+    if(temp->priority > cur->original_priority){
+      thread_yield();
+    }
+  }
+}
+
+void 
+compare_and_yield(struct thread * cur, int compare_priority){
+    if(!list_empty(&ready_list)){
+      struct thread * next = list_entry(list_begin(&ready_list), struct thread, elem);
+      if(next != NULL && next->priority > compare_priority){
+	thread_yield();
+      }
+    }
+}

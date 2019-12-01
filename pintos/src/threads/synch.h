@@ -9,6 +9,7 @@ struct semaphore
   {
     unsigned value;             /* Current value. */
     struct list waiters;        /* List of waiting threads. */
+    int sema_priority;		// Project 3 New //
   };
 
 void sema_init (struct semaphore *, unsigned value);
@@ -23,7 +24,8 @@ struct lock
     struct thread *holder;      /* Thread holding lock (for debugging). */
     struct semaphore semaphore; /* Binary semaphore controlling access. */
 
-    struct list_elem elem;
+    struct list_elem lock_elem;
+    int lock_priority;		/* Project 3 New */
   };
 
 void lock_init (struct lock *);
@@ -33,7 +35,6 @@ void lock_release (struct lock *);
 bool lock_held_by_current_thread (const struct lock *);
 /* Project 3 NEW */
 bool lock_compare(const struct list_elem *a, const struct list_elem *b, void *aux);
-void lock_donation(struct lock * lock);
 /* PRoject 3 NEW */
 /* Condition variable. */
 struct condition 
@@ -45,7 +46,8 @@ void cond_init (struct condition *);
 void cond_wait (struct condition *, struct lock *);
 void cond_signal (struct condition *, struct lock *);
 void cond_broadcast (struct condition *, struct lock *);
-
+/* ProJ 3 New */
+bool cond_compare (const struct list_elem *a, const struct list_elem *b, void *aux);
 /* Optimization barrier.
 
    The compiler will not reorder operations across an

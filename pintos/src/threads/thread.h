@@ -160,5 +160,11 @@ int thread_get_nice (void);
 void thread_set_nice (int);
 int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
+/*Project 3 New */
 bool thread_priority_comp(const struct list_elem *a, const struct list_elem *b, void * aux);
+int lock_donation(struct lock * lock);
+void lock_release_list_insert_ordered(struct thread * cur_thread);
+void compare_and_yield(struct thread * cur, int compare_priority);
+/* Project 3 New */
+
 #endif /* threads/thread.h */
