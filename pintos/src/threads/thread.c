@@ -1,3 +1,4 @@
+#define FRACTION (1<<14)
 #include "threads/thread.h"
 #include <debug.h>
 #include <stddef.h>
@@ -417,6 +418,9 @@ thread_get_nice (void)
 int
 thread_get_load_avg (void) 
 {
+  // printf("HIHIHIHI");
+  // printf("\ncalcualted :%d --",((100 * load_avg) >> 14));
+  // printf("\nload_avg :%d ---",load_avg);
   return (100 * load_avg) >> 14;
 }
 
@@ -670,7 +674,14 @@ void update_load_avg(){
   // 값이 잘려나가는 것을 방지하기 위해 수식을 간편화
   // !!! 후에 float 계산하는거 만들어야 한다.. shit...@@@
 //  int64_t temp = (59 << 14) / 60;
-  load_avg = ((59<<14)/60) * load_avg + (((1<<14)/60) * ready_threads);
+  // printf("load_avg : %d \n",load_avg);
+  // printf("ready_threads : %d \n",ready_threads);
+  // load_avg = (59/60) * load_avg + (1/60) * ready_threads;
+  // load_avg = ((59<<14)/60) * load_avg + (((1<<14)/60) * ready_threads);
+
+  // load_avg = ((59<<14)/60) * load_avg + (((1<<14)/60) * ready_threads);
+  load_avg = ((59*load_avg) + ready_threads *(1<<14))/60;
+  // printf("%d$$",load_avg);
 }
 
 void increase_recent_cpu(){
