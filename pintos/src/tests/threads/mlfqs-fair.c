@@ -75,9 +75,9 @@ test_mlfqs_fair (int thread_cnt, int nice_min, int nice_step)
   ASSERT (nice_min >= -10);
   ASSERT (nice_step >= 0);
   ASSERT (nice_min + nice_step * (thread_cnt - 1) <= 20);
-
+//  printf("1111111\n\n");
   thread_set_nice (-20);
-
+//  printf("22222\n\n");
   start_time = timer_ticks ();
   msg ("Starting %d threads...", thread_cnt);
   nice = nice_min;
@@ -91,8 +91,9 @@ test_mlfqs_fair (int thread_cnt, int nice_min, int nice_step)
       ti->nice = nice;
 
       snprintf(name, sizeof name, "load %d", i);
+    //  printf("asddddddddddddddddddddd\n");
       thread_create (name, PRI_DEFAULT, load_thread, ti);
-
+  //    printf("asaaaaaaaaaaa%d\n", i);
       nice += nice_step;
     }
   msg ("Starting threads took %"PRId64" ticks.", timer_elapsed (start_time));

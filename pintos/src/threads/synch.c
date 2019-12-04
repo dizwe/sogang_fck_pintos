@@ -316,8 +316,10 @@ lock_release (struct lock *lock)
 
   lock->holder = NULL;
   sema_up(&lock->semaphore);
-
-  if(thread_mlfqs) return;
+  if(thread_mlfqs) {
+    thread_yield();
+    return;
+  }
 
   struct thread * cur_thread = thread_current();
   struct semaphore cur_sema = lock->semaphore;

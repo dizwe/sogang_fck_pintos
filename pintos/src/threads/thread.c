@@ -66,7 +66,6 @@ bool thread_mlfqs;
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
-bool thread_mlfqs;
 
 static void kernel_thread (thread_func *, void *aux);
 
@@ -408,13 +407,14 @@ void
 thread_set_nice (int new_nice) 
 {
   struct thread * cur_thread = thread_current();
-  struct list_elem * t_elem = list_front(&ready_list);
+//  struct list_elem * t_elem = list_front(&ready_list);
   cur_thread->nice = new_nice;
   //!!! 1129 recent_cpu로 수정 @@@
 //  update_priority_with_aging();
-  cur_thread->priority = ((PRI_MAX * FRACTION) - (cur_thread->recent_cpu / 4) - ((new_nice * FRACTION) * 2))>>14;
+  cur_thread->priority = ((PRI_MAX * FRACTION) - (cur_thread->recent_cpu / 4) - ((new_nice * FRACTION) * 2)) / FRACTION;
   cur_thread->priority = (cur_thread->priority > PRI_MAX) ? PRI_MAX : ((cur_thread->priority < PRI_MIN) ? PRI_MIN : cur_thread->priority);
-  if(cur_thread->priority < list_entry(t_elem, struct thread, elem)->priority){
+//  if(!thread_mlfqs && cur_thread->priority < list_entry(t_elem, struct thread, elem)->priority){
+  if(!thread_mlfqs){
     // If the running thread no longer has the highest priority, yields
     thread_yield();
   }
@@ -546,10 +546,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
 /* Project 3 */
 //!!! inherit If not, the thread starts with a nice value inherited from their parent thread @@@//
-  t->nice = running_thread()->nice ;
+  t->nice = running_thread()->nice;
   t->recent_cpu = running_thread()->recent_cpu; 
-//  t->nice = 0;
-//  t->recent_cpu = 0;
   t->wake_up_time = 0;
 /* 		*/
   list_push_back (&all_list, &t->allelem);
