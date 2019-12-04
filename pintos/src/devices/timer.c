@@ -1,3 +1,4 @@
+#define FRACTION (1<<14)
 #include "devices/timer.h"
 #include <debug.h>
 #include <inttypes.h>
@@ -188,29 +189,21 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
   ticks++;
-  
-  struct thread* temp_thread = NULL;
-  struct list_elem * temp_elem = NULL;
- /* 그냥 for 문에 temp_elem = list_next(temp_elem)을 하니까 Kernel PANIC이 떳다. */ 
-  for(temp_elem = list_begin(&sleep_list); temp_elem != list_end(&sleep_list);){
-  temp_thread = list_entry(temp_elem, struct thread, elem);
-    if(temp_thread->wake_up_time <= ticks){
-      temp_elem = list_remove(temp_elem);
-      thread_unblock(temp_thread);
-    }
-    else{
-      temp_elem = list_next(temp_elem);
-    }
-  }
-  //!!!priority aging을 하는거라면
+  if(thread_mlfqs || thread_prior_aging)
+  recent_one(); 
+  thread_wake_up();
+ //!!!priority aging을 하는거라면
   if(thread_prior_aging||thread_mlfqs){
+    
  //  if(thread_currnet() != idle_thread) {
-     thread_current()->recent_cpu =  thread_current()->recent_cpu + (1<<14);
+//    if(thread_current() != idle_thread) thread_current()->recent_cpu =  thread_current()->recent_cpu + (1<<14);
   //} 
+//    recent_one();
     // 41p recent_cpu value of all thread is updated in every second(1sec=TIMER_FREQ)
     if (timer_ticks() % TIMER_FREQ == 0){
       update_load_avg();
       increase_recent_cpu();
+//      update_load_avg();
     }
     // 38p Every 4 tick, priorites of all thread in the system are recalculated
     if (timer_ticks() % 4 == 0) 
@@ -291,4 +284,21 @@ real_time_delay (int64_t num, int32_t denom)
      the possibility of overflow. */
   ASSERT (denom % 1000 == 0);
   busy_wait (loops_per_tick * num / 1000 * TIMER_FREQ / (denom / 1000)); 
+}
+
+void thread_wake_up(){
+  struct thread* temp_thread = NULL;
+  struct list_elem * temp_elem = NULL;
+//  그냥 for 문에 temp_elem = list_next(temp_elem)을 하니까 Kernel PANIC이 떳다.
+  for(temp_elem = list_begin(&sleep_list); temp_elem != list_end(&sleep_list);){
+  temp_thread = list_entry(temp_elem, struct thread, elem);
+    if(temp_thread->wake_up_time <= ticks){
+      temp_elem = list_remove(temp_elem);
+      thread_unblock(temp_thread);
+    }
+    else{
+      temp_elem = list_next(temp_elem);
+    }
+  }
+
 }

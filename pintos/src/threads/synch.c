@@ -68,8 +68,11 @@ sema_down (struct semaphore *sema)
   old_level = intr_disable ();
   while (sema->value == 0) 
     {
-//	list_push_back (&sema->waiters, &thread_current()->elem);
-      list_insert_ordered (&sema->waiters, &thread_current ()->elem, thread_priority_comp, NULL);
+      if(thread_mlfqs) 
+	list_push_back (&sema->waiters, &thread_current()->elem);
+
+      else{
+        list_insert_ordered (&sema->waiters, &thread_current ()->elem, thread_priority_comp, NULL);}
       thread_block ();
     }
   sema->value--;
@@ -118,6 +121,14 @@ sema_up (struct semaphore *sema)
 //  max_thread->priority = -1;
 
   old_level = intr_disable ();
+  if(thread_mlfqs){
+  if(!list_empty(&sema->waiters))
+    thread_unblock(list_entry(list_pop_front(&sema->waiters), struct thread, elem));
+  sema->value++;
+  intr_set_level(old_level);
+  return;
+  }
+
   sema->value++;
   if (!list_empty (&sema->waiters)){
 //    max_thread = list_begin(&sema->waiters);
@@ -199,7 +210,7 @@ lock_init (struct lock *lock)
 
   lock->holder = NULL;
   sema_init (&lock->semaphore, 1);
-  lock->lock_priority = PRI_MIN;
+  if(!thread_mlfqs){lock->lock_priority = PRI_MIN;}
 }
 
 /* Acquires LOCK, sleeping until it becomes available if
@@ -217,7 +228,11 @@ lock_acquire (struct lock *lock)
   ASSERT (!intr_context ());
   ASSERT (!lock_held_by_current_thread (lock));
  /*lock_acquire하는 동안 다른 interrupt가 방해할 수 없도록 interrupt disable */
-  
+  if(thread_mlfqs){
+    sema_down(&lock->semaphore);
+    lock->holder = thread_current();
+    return;
+  } 
 
   /*  현재 thread의 lock이 Argument로 넘어온 lock인 것으로 설정한다 
     그리고 만약 그 lock이 NULL이면 lock_donation을 할 필요가 없다. */
@@ -301,6 +316,8 @@ lock_release (struct lock *lock)
 
   lock->holder = NULL;
   sema_up(&lock->semaphore);
+
+  if(thread_mlfqs) return;
 
   struct thread * cur_thread = thread_current();
   struct semaphore cur_sema = lock->semaphore;
@@ -393,8 +410,13 @@ cond_wait (struct condition *cond, struct lock *lock)
   ASSERT (lock_held_by_current_thread (lock));
   
   sema_init (&waiter.semaphore, 0);
+  if(!thread_mlfqs){
   waiter.semaphore.sema_priority = thread_current()->priority;
   list_insert_ordered (&cond->waiters, &waiter.elem, cond_compare, NULL);
+  }
+  else{
+  list_push_back(&cond->waiters, &waiter.elem);
+  }
 
   lock_release (lock);
   sema_down (&waiter.semaphore);

@@ -128,7 +128,7 @@ struct thread
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
-extern bool thread_mlfqs;
+//extern bool thread_mlfqs;
 
 void thread_init (void);
 void thread_start (void);
@@ -165,6 +165,7 @@ bool thread_priority_comp(const struct list_elem *a, const struct list_elem *b, 
 int lock_donation(struct lock * lock);
 void lock_release_list_insert_ordered(struct thread * cur_thread);
 void compare_and_yield(struct thread * cur, int compare_priority);
+void recent_cpu_one();
 /* Project 3 New */
 
 #endif /* threads/thread.h */

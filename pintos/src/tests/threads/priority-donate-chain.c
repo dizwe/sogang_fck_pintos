@@ -72,9 +72,11 @@ test_priority_donate_chain (void)
       thread_create (name, thread_priority, donor_thread_func, lock_pairs + i);
       msg ("%s should have priority %d.  Actual priority: %d.",
           thread_name (), thread_priority, thread_get_priority ());
+
       snprintf (name, sizeof name, "interloper %d", i);
       thread_create (name, thread_priority - 1, interloper_thread_func, NULL);
     }
+
   lock_release (&locks[0]);
   msg ("%s finishing with priority %d.", thread_name (),
                                          thread_get_priority ());
