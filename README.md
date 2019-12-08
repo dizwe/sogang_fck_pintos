@@ -1,6 +1,6 @@
 # sogang_fck_pintos Project
 
-### 민호와 재원이의 핀토스 trial
+### [민호](https://github.com/dizwe)와 [재원](https://github.com/asomeJay)이의 핀토스 trial
 
 1. user program 1-1 완료.
 2. user program 1-2 완료.
