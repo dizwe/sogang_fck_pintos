@@ -118,8 +118,6 @@ sema_up (struct semaphore *sema)
 
   ASSERT (sema != NULL);
 
-//  max_thread->priority = -1;
-
   old_level = intr_disable ();
   if(thread_mlfqs){
   if(!list_empty(&sema->waiters))
@@ -131,11 +129,9 @@ sema_up (struct semaphore *sema)
 
   sema->value++;
   if (!list_empty (&sema->waiters)){
-//    max_thread = list_begin(&sema->waiters);
     max_elem = list_begin(&sema->waiters);
     max_thread = list_entry(max_elem, struct thread, elem);
     
-//    t_elem = list_next(max_elem); 
     for(t_elem = list_begin(&sema->waiters); t_elem != list_end(&sema->waiters); t_elem = list_next(t_elem)){
         t_thread = list_entry(t_elem, struct thread, elem);
 	if(t_thread->priority > max_thread->priority){
@@ -146,9 +142,8 @@ sema_up (struct semaphore *sema)
     list_remove(max_elem);
     thread_unblock(max_thread);
   }
-//  sema->value++;
+
   intr_set_level (old_level);
-//  thread_yield();
 }
 
 static void sema_test_helper (void *sema_);
@@ -252,25 +247,21 @@ lock_acquire (struct lock *lock)
       if(cur_holder->priority >= cur_thread->priority) break;
       cur_holder->flag_priority = 1;
       cur_holder->priority = cur_thread->priority;
-//      compare_and_yield(cur_holder, cur_thread->priority);
-//      lock_release_list_insert_ordered(cur_holder);
-
-//      if (lock_donation(lock) == 4) break ;
       
-    /* lock에 적힌 priority보다 현재 thread의 priority가 더 크면 당연스럽게 
-	donate가 발생했을 것이므로 이렇게 해준다. */
+      /* lock에 적힌 priority보다 현재 thread의 priority가 더 크면 당연스럽게 
+	    donate가 발생했을 것이므로 이렇게 해준다. */
 
       if(cur_lock -> lock_priority < cur_thread -> priority){
-	cur_lock -> lock_priority = cur_thread -> priority;
-	}
+	      cur_lock -> lock_priority = cur_thread -> priority;
+	    }
 
       if((cur_holder -> lock_already != NULL)){
-	cur_lock = cur_holder-> lock_already;
-	cur_holder = cur_lock -> holder;
-        }
+        cur_lock = cur_holder-> lock_already;
+        cur_holder = cur_lock -> holder;
+      }
       else {
-	break;
-	}
+        break;
+        }
       }
     
 
@@ -339,7 +330,6 @@ lock_release (struct lock *lock)
   /* lock_list가 empty가 아니라면 donation이 발생했을 확률이 있다. 
     lock_list에서 가장 priority가 높은 녀석을 찾으서 현재 thread와 같으면
     그녀석이 기부천사이다 */
-//  else if(cur_thread->flag_priority > 0){
      else{
       list_sort(&cur_thread->lock_list ,lock_compare, NULL);
       struct lock * donation_angel = list_entry(list_front(&cur_thread->lock_list), struct lock, lock_elem);

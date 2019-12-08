@@ -105,11 +105,11 @@ timer_sleep (int64_t ticks)
   old_level = intr_disable();
   cur->wake_up_time = start + ticks;
   list_push_back(&sleep_list, &cur->elem);
-//  cur->status = THREAD_BLOCKED;
+
   thread_block();
   intr_set_level(old_level);
 
-/*
+  /* prev one
   while (timer_elapsed (start) < ticks) 
     thread_yield ();*/
 }
@@ -194,16 +194,10 @@ timer_interrupt (struct intr_frame *args UNUSED)
   thread_wake_up();
  //!!!priority aging을 하는거라면
   if(thread_prior_aging||thread_mlfqs){
-    
- //  if(thread_currnet() != idle_thread) {
-//    if(thread_current() != idle_thread) thread_current()->recent_cpu =  thread_current()->recent_cpu + (1<<14);
-  //} 
-//    recent_one();
     // 41p recent_cpu value of all thread is updated in every second(1sec=TIMER_FREQ)
     if (timer_ticks() % TIMER_FREQ == 0){
       update_load_avg();
       increase_recent_cpu();
-//      update_load_avg();
     }
     // 38p Every 4 tick, priorites of all thread in the system are recalculated
     if (timer_ticks() % 4 == 0) 
