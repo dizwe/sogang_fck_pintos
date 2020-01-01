@@ -13,8 +13,10 @@
 4. 되도록이면 내가수정한 부분이 눈에 안띌거 같으면 민호는 !!!@@@로, 재원은 ###$$$로 구분할 것!
 
 > ## 재원쓰의 블로오오오그으
-1주차 - https://imahouse.tistory.com/entry/Pintos-Project핀토스-프로젝트-1-User-Program
+1차 User programm - https://imahouse.tistory.com/entry/Pintos-Project핀토스-프로젝트-1-User-Program
 
-2주차 - https://imahouse.tistory.com/entry/Pintos-Project핀토스-프로젝트-1-2-User-ProgramFile-management
+2차 User Programm File - https://imahouse.tistory.com/entry/Pintos-Project핀토스-프로젝트-1-2-User-ProgramFile-management
 
-3주차 - https://imahouse.tistory.com/180
+3차 Threads - https://imahouse.tistory.com/180
+
+:] 재원이와 미노는 자유에요~(Last Edited 20200101)
